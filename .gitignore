@@ -158,3 +158,17 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# common
+**/*.DS_Store
+
+# dbt
+quollio_core/logs/
+quollio_core/profilers/logs/*
+quollio_core/profilers/dbt_packages/
+quollio_core/profilers/dbt_projects/.user.yml
+quollio_core/profilers/dbt_projects/**/.user.yml
+quollio_core/profilers/dbt_projects/**/target/
+quollio_core/profilers/dbt_projects/**/logs/
+quollio_core/profilers/dbt_projects/**/dbt_packages/
+quollio_core/profilers/dbt_projects/**/profiles.yml
