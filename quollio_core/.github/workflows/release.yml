@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  release:
+    types: [ released ]
+    paths:
+      - "quollio_core/**"
+  workflow_dispatch:
+  
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest  
+    steps:
+    - uses: actions/checkout@v2
+    - name: Generate token
+      id: generate_token
+      uses: tibdex/github-app-token@v1
+      with:
+        app_id: ${{ secrets.QDC_CORE_APP_ID }}
+        private_key: ${{ secrets.QDC_CORE_APP_PRIVATE_KEY }}
+    - name: Get tag
+      run: echo "TAG_NAME=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+    - name: Get Co Authors
+      run: |
+        echo COAUTHORS=$(git log --format='%an <%ae>' | sort -u) >> $GITHUB_ENV
+    - name: Setup commit description
+      env:
+        RUN_URL: "${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}"
+        HEAD_COMMIT_URL: "${{ github.event.repository.html_url }}/commit/${{ github.event.after || github.sha }}"
+      id: setup_description
+      run: |
+        DESCRIPTION=$(cat << EOF
+        Update quollio-core from $${{ env.TAG_NAME }}
+
+        Created from ${{ env.RUN_URL }}
+        Latest commit: ${{ env.HEAD_COMMIT_URL }}
+        Co-Authors: ${{ env.COAUTHORS }}
+        EOF
+        )
+        DESCRIPTION="${DESCRIPTION//$'\n'/'%0A'}"
+        echo "{content}={DESCRIPTION}" >> $GITHUB_OUTPUT
+    - name: Copy source code to quollio-core
+      uses: dmnemec/copy_file_to_another_repo_action@v1.1.1
+      env:
+        API_TOKEN_GITHUB: ${{ steps.generate_token.outputs.token }}
+      with:
+        source_file: "."
+        destination_repo: "QuollioLabs/quollio-core"
+        destination_folder: "quollio_core"
+        destination_branch: "main"
+        destination_branch_create: "feature/update-quollio-core-${{ github.sha  }}"
+        user_email: "github-actions[bot]@users.noreply.github.com"
+        user_name: "github-actions[bot]"
+        commit_message: ${{ steps.setup_description.outputs.content }}
+    - name: create Pull Request to quollio-core
+      run: |
+        gh pr create \
+          --title "update quollio core source code " \
+          --body "${{ steps.setup_description.outputs.content }}" \
+          --repo QuollioLabs/quollio-core \
+          --base main \
+          --head "feature/update-quollio-core-${{ github.sha  }}" \
+          --reviewer "${{ github.event.head_commit.committer.username || github.triggering_actor }}"
+      env:
+        GH_TOKEN: ${{ steps.generate_token.outputs.token }}

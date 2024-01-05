@@ -1,0 +1,18 @@
+version: 2
+models:
+  - name: table_to_table_lineage
+    columns:
+      - name: DOWNSTREAM_TABLE_NAME
+        data_type: string
+      - name: DOWNSTREAM_TABLE_DOMAIN
+        data_type: string
+      - name: UPSTREAM_TABLES
+        data_type: array
+  - name: column_to_column_lineage
+    columns:
+      - name: DOWNSTREAM_TABLE_NAME
+        data_type: string
+      - name: DOWNSTREAM_COLUMN_NAME
+        data_type: string
+      - name: UPSTREAM_COLUMNSls
+        data_type: array
