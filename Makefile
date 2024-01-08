@@ -8,8 +8,8 @@ test:
 
 .PHONY: fmt
 fmt:
-		isort . --check --diff
-		black . --check
+		isort .
+		black .
 
 .PHONY: lint
 lint:
