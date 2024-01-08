@@ -1,0 +1,14 @@
+version: 2
+models:
+  - name: table_to_table_lineage
+    columns:
+      - name: downstream_table_name
+        data_type: string
+      - name: upstream_table_name
+        data_type: string
+  - name: view_level_lineage
+    columns:
+      - name: downstream_table_name
+        data_type: string
+      - name: upstream_table_name
+        data_type: string
