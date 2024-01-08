@@ -1,0 +1,23 @@
+name: 'snowflake_stats_profiler'
+version: '1.0.0'
+config-version: 2
+
+profile: 'snowflake_stats_profiler'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  +grants:
+    select: ["{{ var('exec_role') }}"]
+  snowflake_stats_profiler:
+    profilers:
+      +materialized: view
