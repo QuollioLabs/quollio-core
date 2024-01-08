@@ -1,0 +1,12 @@
+snowflake_lineage_profiler:
+  target: project
+  outputs:
+    project:
+      account: {{ account_id }}
+      database: "QUOLLIO_DATA_PROFILER"
+      role: {{ account_role }}
+      schema: "PUBLIC"
+      type: snowflake
+      user: {{ account_user }}
+      password: {{ account_password }}
+      warehouse: {{ account_warehouse }}
