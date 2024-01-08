@@ -1,0 +1,12 @@
+version: 2
+models:
+  - name: profile_target_columns
+    columns:
+      - name: table_catalog
+        data_type: string
+      - name: table_schema
+        data_type: string
+      - name: table_name
+        data_type: string
+      - name: column_name
+        data_type: string
