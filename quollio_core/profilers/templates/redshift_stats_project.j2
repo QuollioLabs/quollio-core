@@ -1,0 +1,12 @@
+redshift_stats_profiler:
+  target: project
+  outputs:
+    project:
+      type: redshift
+      host: {{ host }}
+      dbname: {{ database }}
+      schema: {{ schema }}
+      user: {{ user }}
+      password: {{ password }}
+      port: {{ port }}
+      threads: {{ threads }}
