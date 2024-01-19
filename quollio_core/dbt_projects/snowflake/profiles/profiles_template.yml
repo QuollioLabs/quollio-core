@@ -1,0 +1,13 @@
+quollio_intelligence_snowflake:
+  target: project
+  outputs:
+    project:
+      account: {{ account_id }}
+      database: {{ account_database }}
+      role: {{ account_build_role }}
+      schema: {{ account_schema }}
+      type: snowflake
+      user: {{ account_user }}
+      password: {{ account_password }}
+      warehouse: {{ account_warehouse }}
+      threads: {{ threads }}

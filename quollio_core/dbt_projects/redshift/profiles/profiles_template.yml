@@ -1,0 +1,12 @@
+quollio_intelligence_redshift:
+  target: project
+  outputs:
+    project:
+      type: redshift
+      host: {{ host }}
+      dbname: {{ database }}
+      schema: {{ schema }}
+      user: {{ build_user }}
+      password: {{ build_password }}
+      port: {{ port }}
+      threads: {{ threads }}

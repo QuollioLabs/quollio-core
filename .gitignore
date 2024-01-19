@@ -164,11 +164,11 @@ cython_debug/
 
 # dbt
 quollio_core/logs/
-quollio_core/profilers/logs/*
-quollio_core/profilers/dbt_packages/
-quollio_core/profilers/dbt_projects/.user.yml
-quollio_core/profilers/dbt_projects/**/.user.yml
-quollio_core/profilers/dbt_projects/**/target/
-quollio_core/profilers/dbt_projects/**/logs/
-quollio_core/profilers/dbt_projects/**/dbt_packages/
-quollio_core/profilers/dbt_projects/**/profiles.yml
+quollio_core/logs/*
+quollio_core/dbt_packages/
+quollio_core/dbt_projects/.user.yml
+quollio_core/dbt_projects/**/.user.yml
+quollio_core/dbt_projects/**/target/
+quollio_core/dbt_projects/**/logs/
+quollio_core/dbt_projects/**/dbt_packages/
+quollio_core/dbt_projects/**/profiles.yml
