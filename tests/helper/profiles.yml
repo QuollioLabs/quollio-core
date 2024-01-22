@@ -1,0 +1,12 @@
+quollio_intelligence_snowflake:
+  outputs:
+    project:
+      account: test-endpoint
+      database: QUOLLIO_DATA_PROFILER
+      password: TESTPASSWORD
+      role: TEST_BUILD_ROLE
+      schema: PUBLIC
+      type: snowflake
+      user: TESTUSER
+      warehouse: TEST_WH
+  target: project

@@ -1,0 +1,22 @@
+version: 2
+models:
+  - name: quollio_stats_profiling_columns
+    columns:
+      - name: database_name
+        description: ''
+        data_type: name
+      - name: schema_name
+        description: ''
+        data_type: name
+      - name: table_name
+        description: ''
+        data_type: name
+      - name: column_name
+        description: ''
+        data_type: name
+      - name: is_bool
+        description: ''
+        data_type: boolean
+      - name: is_calculable
+        description: ''
+        data_type: boolean

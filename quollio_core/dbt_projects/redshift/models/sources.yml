@@ -1,0 +1,442 @@
+version: 2
+
+sources:
+  - name: pg_catalog
+    database: "{{ var('target_database') }}"
+    schema: pg_catalog
+    tables:
+      - name: stl_insert
+        description: Analyzes insert execution steps for queries. See https://docs.aws.amazon.com/redshift/latest/dg/r_STL_INSERT.html
+        columns:
+          - name: userid
+            description: ''
+            data_type: integer
+          - name: query
+            description: ''
+            data_type: integer
+          - name: slice
+            description: ''
+            data_type: integer
+          - name: segment
+            description: ''
+            data_type: integer
+          - name: step
+            description: ''
+            data_type: integer
+          - name: starttime
+            description: ''
+            data_type: timestamp without time zone
+          - name: endtime
+            description: ''
+            data_type: timestamp without time zone
+          - name: tasknum
+            description: ''
+            data_type: integer
+          - name: rows
+            description: ''
+            data_type: bigint
+          - name: tbl
+            description: ''
+            data_type: integer
+          - name: inserted_mega_value
+            description: ''
+            data_type: character
+          - name: use_staging_table
+            description: ''
+            data_type: character
+          - name: write_xid
+            description: ''
+            data_type: bigint
+      - name: stl_scan
+        description: Analyzes table scan steps for queries. See https://docs.aws.amazon.com/redshift/latest/dg/r_STL_SCAN.html
+        columns:
+          - name: userid
+            description: ''
+            data_type: integer
+          - name: query
+            description: ''
+            data_type: integer
+          - name: slice
+            description: ''
+            data_type: integer
+          - name: segment
+            description: ''
+            data_type: integer
+          - name: step
+            description: ''
+            data_type: integer
+          - name: starttime
+            description: ''
+            data_type: timestamp without time zone
+          - name: endtime
+            description: ''
+            data_type: timestamp without time zone
+          - name: tasknum
+            description: ''
+            data_type: integer
+          - name: rows
+            description: ''
+            data_type: bigint
+          - name: bytes
+            description: ''
+            data_type: bigint
+          - name: fetches
+            description: ''
+            data_type: bigint
+          - name: type
+            description: ''
+            data_type: integer
+          - name: tbl
+            description: ''
+            data_type: integer
+          - name: is_rrscan
+            description: ''
+            data_type: character
+          - name: is_delayed_scan
+            description: ''
+            data_type: character
+          - name: rows_pre_filter
+            description: ''
+            data_type: bigint
+          - name: rows_pre_user_filter
+            description: ''
+            data_type: bigint
+          - name: perm_table_name
+            description: ''
+            data_type: character
+          - name: is_rlf_scan
+            description: ''
+            data_type: character
+          - name: is_rlf_scan_reason
+            description: ''
+            data_type: integer
+          - name: num_em_blocks
+            description: ''
+            data_type: integer
+          - name: checksum
+            description: ''
+            data_type: bigint
+          - name: runtime_filtering
+            description: ''
+            data_type: character
+          - name: scan_region
+            description: ''
+            data_type: integer
+          - name: num_sortkey_as_predicate
+            description: ''
+            data_type: integer
+          - name: row_fetcher_state
+            description: ''
+            data_type: integer
+          - name: consumed_scan_ranges
+            description: ''
+            data_type: bigint
+          - name: work_stealing_reason
+            description: ''
+            data_type: bigint
+          - name: is_vectorized_scan
+            description: ''
+            data_type: character
+          - name: is_vectorized_scan_reason
+            description: ''
+            data_type: integer
+          - name: row_fetcher_reason
+            description: ''
+            data_type: bigint
+          - name: topology_signature
+            description: ''
+            data_type: bigint
+          - name: use_tpm_partition
+            description: ''
+            data_type: character
+          - name: is_rrscan_expr
+            description: ''
+            data_type: character
+          - name: use_fwd_mtx_opt
+            description: ''
+            data_type: character
+          - name: scanned_mega_value
+            description: ''
+            data_type: character
+      - name: svv_table_info
+        description: Shows summary information for tables in the database. See https://docs.aws.amazon.com/redshift/latest/dg/r_SVV_TABLE_INFO.html
+        columns:
+          - name: database
+            description: ''
+            data_type: text
+          - name: schema
+            description: ''
+            data_type: text
+          - name: table_id
+            description: ''
+            data_type: oid
+          - name: table
+            description: ''
+            data_type: text
+          - name: encoded
+            description: ''
+            data_type: text
+          - name: diststyle
+            description: ''
+            data_type: text
+          - name: sortkey1
+            description: ''
+            data_type: text
+          - name: max_varchar
+            description: ''
+            data_type: integer
+          - name: sortkey1_enc
+            description: ''
+            data_type: character
+          - name: sortkey_num
+            description: ''
+            data_type: integer
+          - name: size
+            description: ''
+            data_type: bigint
+          - name: pct_used
+            description: ''
+            data_type: numeric
+          - name: empty
+            description: ''
+            data_type: bigint
+          - name: unsorted
+            description: ''
+            data_type: numeric
+          - name: stats_off
+            description: ''
+            data_type: numeric
+          - name: tbl_rows
+            description: ''
+            data_type: numeric
+          - name: skew_sortkey1
+            description: ''
+            data_type: numeric
+          - name: skew_rows
+            description: ''
+            data_type: numeric
+          - name: estimated_visible_rows
+            description: ''
+            data_type: numeric
+          - name: risk_event
+            description: ''
+            data_type: text
+          - name: vacuum_sort_benefit
+            description: ''
+            data_type: numeric
+          - name: create_time
+            description: ''
+            data_type: timestamp without time zone
+      - name: svl_user_info
+        description: Retrieve data about Amazon Redshift database users. See https://docs.aws.amazon.com/redshift/latest/dg/r_SVL_USER_INFO.html
+        columns:
+          - name: usename
+            description: ''
+            data_type: character varying
+          - name: usesysid
+            description: ''
+            data_type: integer
+          - name: usecreatedb
+            description: ''
+            data_type: boolean
+          - name: usesuper
+            description: ''
+            data_type: boolean
+          - name: usecatupd
+            description: ''
+            data_type: boolean
+          - name: useconnlimit
+            description: ''
+            data_type: character varying
+          - name: syslogaccess
+            description: ''
+            data_type: character varying
+          - name: sessiontimeout
+            description: ''
+            data_type: integer
+          - name: last_ddl_ts
+            description: ''
+            data_type: timestamp without time zone
+          - name: external_id
+            description: ''
+            data_type: character varying
+      - name: pg_table_def
+        description: Stores information about table columns. See https://docs.aws.amazon.com/redshift/latest/dg/r_PG_TABLE_DEF.html
+        columns:
+          - name: schemaname
+            description: ''
+            data_type: name
+          - name: tablename
+            description: ''
+            data_type: name
+          - name: column
+            description: ''
+            data_type: name
+          - name: type
+            description: ''
+            data_type: text
+          - name: encoding
+            description: ''
+            data_type: character
+          - name: distkey
+            description: ''
+            data_type: boolean
+          - name: sortkey
+            description: ''
+            data_type: integer
+          - name: notnull
+            description: ''
+            data_type: boolean
+      - name: pg_class
+        description: The catalog pg_class describes tables and other objects that have columns or are otherwise similar to a table. See https://www.postgresql.org/docs/current/catalog-pg-class.html
+        columns:
+          - name: relname
+            description: ''
+            data_type: name
+          - name: relnamespace
+            description: ''
+            data_type: oid
+          - name: reltype
+            description: ''
+            data_type: oid
+          - name: relowner
+            description: ''
+            data_type: integer
+          - name: relam
+            description: ''
+            data_type: oid
+          - name: relfilenode
+            description: ''
+            data_type: oid
+          - name: reltablespace
+            description: ''
+            data_type: oid
+          - name: relpages
+            description: ''
+            data_type: integer
+          - name: reltuples
+            description: ''
+            data_type: real
+          - name: reltoastrelid
+            description: ''
+            data_type: oid
+          - name: reltoastidxid
+            description: ''
+            data_type: oid
+          - name: relhasindex
+            description: ''
+            data_type: boolean
+          - name: relisshared
+            description: ''
+            data_type: boolean
+          - name: relkind
+            description: ''
+            data_type: '"char"'
+          - name: relnatts
+            description: ''
+            data_type: smallint
+          - name: relexternid
+            description: ''
+            data_type: oid
+          - name: relisreplicated
+            description: ''
+            data_type: boolean
+          - name: relispinned
+            description: ''
+            data_type: boolean
+          - name: reldiststyle
+            description: ''
+            data_type: smallint
+          - name: relprojbaseid
+            description: ''
+            data_type: oid
+          - name: relchecks
+            description: ''
+            data_type: smallint
+          - name: reltriggers
+            description: ''
+            data_type: smallint
+          - name: relukeys
+            description: ''
+            data_type: smallint
+          - name: relfkeys
+            description: ''
+            data_type: smallint
+          - name: relrefs
+            description: ''
+            data_type: smallint
+          - name: relhasoids
+            description: ''
+            data_type: boolean
+          - name: relhaspkey
+            description: ''
+            data_type: boolean
+          - name: relhasrules
+            description: ''
+            data_type: boolean
+          - name: relhassubclass
+            description: ''
+            data_type: boolean
+          - name: relacl
+            description: ''
+            data_type: ARRAY
+      - name: pg_depend
+        description: The catalog pg_depend records the dependency relationships between database objects. See https://www.postgresql.org/docs/current/catalog-pg-depend.html
+        columns:
+          - name: classid
+            description: ''
+            data_type: oid
+          - name: objid
+            description: ''
+            data_type: oid
+          - name: objsubid
+            description: ''
+            data_type: integer
+          - name: refclassid
+            description: ''
+            data_type: oid
+          - name: refobjid
+            description: ''
+            data_type: oid
+          - name: refobjsubid
+            description: ''
+            data_type: integer
+          - name: deptype
+            description: ''
+            data_type: '"char"'
+      - name: pg_namespace
+        description: The catalog pg_namespace stores namespaces. See https://www.postgresql.org/docs/current/catalog-pg-namespace.html
+        columns:
+          - name: nspname
+            description: ''
+            data_type: name
+          - name: nspowner
+            description: ''
+            data_type: integer
+          - name: nspacl
+            description: ''
+            data_type: ARRAY
+      - name: pg_tables
+        description: The view pg_tables provides access to useful information about each table in the database. See https://www.postgresql.org/docs/current/view-pg-tables.html
+        columns:
+          - name: schemaname
+            description: ''
+            data_type: name
+          - name: tablename
+            description: ''
+            data_type: name
+          - name: tableowner
+            description: ''
+            data_type: name
+          - name: tablespace
+            description: ''
+            data_type: name
+          - name: hasindexes
+            description: ''
+            data_type: boolean
+          - name: hasrules
+            description: ''
+            data_type: boolean
+          - name: hastriggers
+            description: ''
+            data_type: boolean
