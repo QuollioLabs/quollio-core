@@ -1,0 +1,10 @@
+version: 2
+models:
+  - name: quollio_lineage_view_level
+    columns:
+      - name: downstream_table_name
+        description: ''
+        data_type: text
+      - name: upstream_table_name
+        description: ''
+        data_type: text

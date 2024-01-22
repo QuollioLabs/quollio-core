@@ -1,0 +1,13 @@
+version: 2
+models:
+  - name: quollio_lineage_table_level
+    columns:
+      - name: DOWNSTREAM_TABLE_NAME
+        description: ''
+        data_type: VARCHAR
+      - name: DOWNSTREAM_TABLE_DOMAIN
+        description: ''
+        data_type: VARCHAR
+      - name: UPSTREAM_TABLES
+        description: ''
+        data_type: ARRAY
