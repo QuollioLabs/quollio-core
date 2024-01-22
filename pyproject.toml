@@ -36,6 +36,7 @@ dependencies = [
     ,"jinja2==3.1.2"
     ,"PyYAML==6.0.1"
     ,"requests==2.31.0"
+    ,"pyjwt==2.8.0"
     ,"redshift-connector==2.0.915"
     ,"snowflake-connector-python==3.5.0"
 ]
@@ -47,10 +48,11 @@ Home = "https://quollio.com"
 
 [project.optional-dependencies]
 test = [
-  "black>=22.3.0",
-  "isort>=5.10.1",
-  "pyproject-flake8>=0.0.1-alpha.2",
-  "pytest>=5.2",
+  "black>=22.3.0"
+  ,"isort>=5.10.1"
+  ,"pyproject-flake8>=0.0.1-alpha.2"
+  ,"pytest>=5.2"
+  ,"dbt-osmosis==0.12.5"
 ]
 
 [tool.flit.module]

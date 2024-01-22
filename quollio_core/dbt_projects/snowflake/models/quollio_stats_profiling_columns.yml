@@ -1,0 +1,22 @@
+version: 2
+models:
+  - name: quollio_stats_profiling_columns
+    columns:
+      - name: TABLE_CATALOG
+        description: ''
+        data_type: VARCHAR
+      - name: TABLE_SCHEMA
+        description: ''
+        data_type: VARCHAR
+      - name: TABLE_NAME
+        description: ''
+        data_type: VARCHAR
+      - name: COLUMN_NAME
+        description: ''
+        data_type: VARCHAR
+      - name: DATA_TYPE
+        description: ''
+        data_type: VARCHAR
+      - name: IS_CALCULABLE
+        description: ''
+        data_type: BOOLEAN

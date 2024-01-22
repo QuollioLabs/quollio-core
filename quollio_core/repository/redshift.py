@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass
 from typing import Dict, List, Tuple
 
 from redshift_connector import Connection, connect
+from redshift_connector.error import ProgrammingError
 
 logger = logging.getLogger(__name__)
 
@@ -10,12 +11,14 @@ logger = logging.getLogger(__name__)
 @dataclass
 class RedshiftConnectionConfig:
     host: str
+    build_user: str
+    query_user: str
+    build_password: str
+    query_password: str
     database: str
-    user: str
-    password: str
-    schema: str = "public"
+    schema: str
     port: int = 5439
-    threads: int = 2
+    threads: int = 3
 
     def as_dict(self) -> Dict[str, str]:
         return asdict(self)
@@ -33,7 +36,7 @@ class RedshiftQueryExecutor:
 
     def __initialize(self, config: RedshiftConnectionConfig) -> Connection:
         conn: RedshiftConnectionConfig = connect(
-            host=config.host, database=config.database, user=config.user, password=config.password
+            host=config.host, database=config.database, user=config.query_user, password=config.query_password
         )
         return conn
 
@@ -44,6 +47,16 @@ class RedshiftQueryExecutor:
                 cur.execute(query)
                 result: tuple = cur.fetchall()
                 return result
+            except ProgrammingError as pe:
+                if "out of memory" in str(pe).lower():
+                    logger.error(" ".join(query.split()))
+                    logger.error("Out of Memory Error: {err}".format(err=pe))
+                    return tuple()
+                else:
+                    logger.error(query)
+                    logger.error("ProgrammingError: {err}".format(err=pe))
+                    raise
             except Exception as e:
+                logger.error(query)
                 logger.error("Failed to get query results. error: {err}".format(err=e))
                 raise

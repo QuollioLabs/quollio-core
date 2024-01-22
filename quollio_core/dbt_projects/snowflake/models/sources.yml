@@ -1,0 +1,319 @@
+version: 2
+
+sources:
+  - name: account_usage
+    database: SNOWFLAKE
+    schema: ACCOUNT_USAGE
+    tables:
+      - name: ACCESS_HISTORY
+        description: This Account Usage view can be used to query the access history of Snowflake objects (e.g. table, view, column) within the last 365 days (1 year). See https://docs.snowflake.com/en/sql-reference/account-usage/access_history
+        columns:
+          - name: QUERY_ID
+            description: ''
+            data_type: VARCHAR
+          - name: QUERY_START_TIME
+            description: ''
+            data_type: TIMESTAMP_LTZ
+          - name: USER_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: DIRECT_OBJECTS_ACCESSED
+            description: ''
+            data_type: ARRAY
+          - name: BASE_OBJECTS_ACCESSED
+            description: ''
+            data_type: ARRAY
+          - name: OBJECTS_MODIFIED
+            description: ''
+            data_type: ARRAY
+          - name: OBJECT_MODIFIED_BY_DDL
+            description: ''
+            data_type: OBJECT
+          - name: POLICIES_REFERENCED
+            description: ''
+            data_type: ARRAY
+      - name: TABLES
+        description: This Account Usage view displays a row for each table and view in the account. See https://docs.snowflake.com/en/sql-reference/account-usage/tables.html
+        columns:
+          - name: TABLE_ID
+            description: ''
+            data_type: NUMBER
+          - name: TABLE_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_SCHEMA_ID
+            description: ''
+            data_type: NUMBER
+          - name: TABLE_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_CATALOG_ID
+            description: ''
+            data_type: NUMBER
+          - name: TABLE_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_OWNER
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_TYPE
+            description: ''
+            data_type: VARCHAR
+          - name: IS_TRANSIENT
+            description: ''
+            data_type: VARCHAR
+          - name: CLUSTERING_KEY
+            description: ''
+            data_type: VARCHAR
+          - name: ROW_COUNT
+            description: ''
+            data_type: NUMBER
+          - name: BYTES
+            description: ''
+            data_type: NUMBER
+          - name: RETENTION_TIME
+            description: ''
+            data_type: NUMBER
+          - name: SELF_REFERENCING_COLUMN_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: REFERENCE_GENERATION
+            description: ''
+            data_type: VARCHAR
+          - name: USER_DEFINED_TYPE_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: USER_DEFINED_TYPE_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: USER_DEFINED_TYPE_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: IS_INSERTABLE_INTO
+            description: ''
+            data_type: VARCHAR
+          - name: IS_TYPED
+            description: ''
+            data_type: VARCHAR
+          - name: COMMIT_ACTION
+            description: ''
+            data_type: VARCHAR
+          - name: CREATED
+            description: ''
+            data_type: TIMESTAMP_LTZ
+          - name: LAST_ALTERED
+            description: ''
+            data_type: TIMESTAMP_LTZ
+          - name: LAST_DDL
+            description: ''
+            data_type: TIMESTAMP_LTZ
+          - name: LAST_DDL_BY
+            description: ''
+            data_type: VARCHAR
+          - name: DELETED
+            description: ''
+            data_type: TIMESTAMP_LTZ
+          - name: AUTO_CLUSTERING_ON
+            description: ''
+            data_type: VARCHAR
+          - name: COMMENT
+            description: ''
+            data_type: VARCHAR
+          - name: OWNER_ROLE_TYPE
+            description: ''
+            data_type: VARCHAR
+          - name: INSTANCE_ID
+            description: ''
+            data_type: NUMBER
+      - name: COLUMNS
+        description: This Account Usage view displays a row for each column in the tables defined in the account. See https://docs.snowflake.com/en/sql-reference/account-usage/columns.html
+        columns:
+          - name: COLUMN_ID
+            description: ''
+            data_type: NUMBER
+          - name: COLUMN_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_ID
+            description: ''
+            data_type: NUMBER
+          - name: TABLE_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_SCHEMA_ID
+            description: ''
+            data_type: NUMBER
+          - name: TABLE_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_CATALOG_ID
+            description: ''
+            data_type: NUMBER
+          - name: TABLE_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: ORDINAL_POSITION
+            description: ''
+            data_type: NUMBER
+          - name: COLUMN_DEFAULT
+            description: ''
+            data_type: VARCHAR
+          - name: IS_NULLABLE
+            description: ''
+            data_type: VARCHAR
+          - name: DATA_TYPE
+            description: ''
+            data_type: VARCHAR
+          - name: CHARACTER_MAXIMUM_LENGTH
+            description: ''
+            data_type: NUMBER
+          - name: CHARACTER_OCTET_LENGTH
+            description: ''
+            data_type: NUMBER
+          - name: NUMERIC_PRECISION
+            description: ''
+            data_type: NUMBER
+          - name: NUMERIC_PRECISION_RADIX
+            description: ''
+            data_type: NUMBER
+          - name: NUMERIC_SCALE
+            description: ''
+            data_type: NUMBER
+          - name: DATETIME_PRECISION
+            description: ''
+            data_type: NUMBER
+          - name: INTERVAL_TYPE
+            description: ''
+            data_type: VARCHAR
+          - name: INTERVAL_PRECISION
+            description: ''
+            data_type: VARCHAR
+          - name: CHARACTER_SET_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: CHARACTER_SET_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: CHARACTER_SET_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: COLLATION_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: COLLATION_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: COLLATION_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: DOMAIN_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: DOMAIN_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: DOMAIN_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: UDT_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: UDT_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: UDT_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: SCOPE_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: SCOPE_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: SCOPE_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: MAXIMUM_CARDINALITY
+            description: ''
+            data_type: VARCHAR
+          - name: DTD_IDENTIFIER
+            description: ''
+            data_type: VARCHAR
+          - name: IS_SELF_REFERENCING
+            description: ''
+            data_type: VARCHAR
+          - name: IS_IDENTITY
+            description: ''
+            data_type: VARCHAR
+          - name: IDENTITY_GENERATION
+            description: ''
+            data_type: VARCHAR
+          - name: IDENTITY_START
+            description: ''
+            data_type: VARCHAR
+          - name: IDENTITY_INCREMENT
+            description: ''
+            data_type: VARCHAR
+          - name: IDENTITY_MAXIMUM
+            description: ''
+            data_type: VARCHAR
+          - name: IDENTITY_MINIMUM
+            description: ''
+            data_type: VARCHAR
+          - name: IDENTITY_CYCLE
+            description: ''
+            data_type: VARCHAR
+          - name: IDENTITY_ORDERED
+            description: ''
+            data_type: VARCHAR
+          - name: COMMENT
+            description: ''
+            data_type: VARCHAR
+          - name: DELETED
+            description: ''
+            data_type: TIMESTAMP_LTZ
+      - name: GRANTS_TO_ROLES
+        description: This Account Usage view can be used to query access control privileges that have been granted to a role. See https://docs.snowflake.com/en/sql-reference/account-usage/grants_to_roles.html
+        columns:
+          - name: CREATED_ON
+            description: ''
+            data_type: TIMESTAMP_LTZ
+          - name: MODIFIED_ON
+            description: ''
+            data_type: TIMESTAMP_LTZ
+          - name: PRIVILEGE
+            description: ''
+            data_type: VARCHAR
+          - name: GRANTED_ON
+            description: ''
+            data_type: VARCHAR
+          - name: NAME
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_CATALOG
+            description: ''
+            data_type: VARCHAR
+          - name: TABLE_SCHEMA
+            description: ''
+            data_type: VARCHAR
+          - name: GRANTED_TO
+            description: ''
+            data_type: VARCHAR
+          - name: GRANTEE_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: GRANT_OPTION
+            description: ''
+            data_type: BOOLEAN
+          - name: GRANTED_BY
+            description: ''
+            data_type: VARCHAR
+          - name: DELETED_ON
+            description: ''
+            data_type: TIMESTAMP_LTZ
+          - name: GRANTED_BY_ROLE_TYPE
+            description: ''
+            data_type: VARCHAR
+          - name: OBJECT_INSTANCE
+            description: ''
+            data_type: VARCHAR
