@@ -36,5 +36,6 @@ jobs:
           REPOSITORY: "quollio-core-universal"
           IMAGE_TAG: latest
         run: |
+          touch .env
           docker build --no-cache -t ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }} . -f ./Dockerfile.local --platform=linux/amd64
           docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
