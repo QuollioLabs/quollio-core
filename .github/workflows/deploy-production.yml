@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  release:
+    types: [ released ]
+
+jobs:
+  build:
+    name: Build distribution
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.8", "3.9", "3.10", "3.11"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pypa/build
+        run: python3 -m pip install build --user
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install .
+      - name: Build a binary wheel and a source tarball
+        run: python3 -m build
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish:
+    name: publish to pypi
+    needs:
+      - build
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish to PyPi
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  build_push:
+    name: Build And Push DockerImage
+    needs:
+      - publish
+    runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      id-token: write
+
+    steps:
+      # Initialize
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.ref }}
+
+      - uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-assume-role
+          role-session-name: github-actions-assume-role
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v1
+        id: login-ecr
+
+      - name: get latest tag
+        run: |
+          LIB_VERSION=$(echo ${GITHUB_REF##*/} | sed 's/^v//')
+          echo "QUOLLIO_CORE_LATEST_VERSION=$LIB_VERSION" >> $GITHUB_ENV
+
+      # Build container image and push it to ECR.
+      - name: build
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: "quollio-core-universal"
+          IMAGE_TAG: latest
+        run: |
+          (${GITHUB_REF##*/})
+          docker build --no-cache -t ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }} . -f ./Dockerfile --build-arg LIB_VERSION=${{ env.QUOLLIO_CORE_LATEST_VERSION }} --platform=linux/amd64
+          docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
