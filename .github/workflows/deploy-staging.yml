@@ -1,0 +1,40 @@
+name: 'push-container-to-staging'
+on:
+  push:
+    branches:
+      - 'main'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build_push:
+    name: Build And Push DockerImage
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      # Initialize
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.ref }}
+
+      - uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github-actions-assume-role
+          role-session-name: github-actions-assume-role
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v1
+        id: login-ecr
+
+      # Build container image and push it to ECR.
+      - name: build
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: "quollio-core-universal"
+          IMAGE_TAG: latest
+        run: |
+          docker build --no-cache -t ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }} . -f ./Dockerfile.local --platform=linux/amd64
+          docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
