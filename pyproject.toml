@@ -39,6 +39,7 @@ dependencies = [
     ,"pyjwt==2.8.0"
     ,"redshift-connector==2.0.915"
     ,"snowflake-connector-python==3.5.0"
+    ,"sqlglot==20.8.0"
 ]
 dynamic = ["version", "description"]
 

@@ -17,7 +17,8 @@ RUN set -x \
   && cp /usr/share/zoneinfo/Asia/Tokyo /etc/localtime
 
 # Install libraries
+ARG LIB_VERSION
 RUN set -x \
-  && pip install quollio-core
+  && pip install quollio-core==$LIB_VERSION
 
 ENTRYPOINT [ "python", "-m" ]

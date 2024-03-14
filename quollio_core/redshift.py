@@ -4,7 +4,11 @@ import os
 
 from quollio_core.helper.core import setup_dbt_profile
 from quollio_core.helper.env_default import env_default
-from quollio_core.profilers.redshift import redshift_table_level_lineage, redshift_table_stats
+from quollio_core.profilers.redshift import (
+    redshift_table_level_lineage,
+    redshift_table_level_sqllineage,
+    redshift_table_stats,
+)
 from quollio_core.repository import dbt, qdc, redshift
 
 logger = logging.getLogger(__name__)
@@ -13,6 +17,8 @@ logger = logging.getLogger(__name__)
 def build_view(
     conn: redshift.RedshiftConnectionConfig,
     skip_heavy: bool,
+    target_tables: str = "",
+    log_level: str = "info",
 ) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
@@ -41,13 +47,22 @@ def build_view(
         cmd="deps",
         project_dir=project_path,
         profile_dir=template_path,
-        options=["--no-use-colors", "--vars", options],
+        options=["--no-use-colors", "--log-level", log_level, "--vars", options],
     )
+
+    run_options = ["--no-use-colors", "--log-level", log_level, "--vars", options]
+    if target_tables is not None:
+        if "quollio_stats_columns" in target_tables:
+            target_tables.append("quollio_stats_profiling_columns")
+        target_tables_str = " ".join(target_tables)
+        run_options.append("--select")
+        run_options.append(target_tables_str)
+
     dbt_client.invoke(
         cmd="run",
         project_dir=project_path,
         profile_dir=template_path,
-        options=["--no-use-colors", "--vars", options],
+        options=run_options,
     )
 
     logger.info("Profiler views are successfully built.")
@@ -100,6 +115,25 @@ def load_stats(
     return
 
 
+def load_sqllineage(
+    conn: redshift.RedshiftConnectionConfig,
+    qdc_client: qdc.QDCExternalAPIClient,
+    tenant_id: str,
+) -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+
+    logger.info("Generate Redshift sqllineage.")
+    redshift_table_level_sqllineage(
+        conn=conn,
+        qdc_client=qdc_client,
+        tenant_id=tenant_id,
+    )
+
+    logger.info("sqllineage data is successfully loaded.")
+
+    return
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         prog="Quollio Intelligence Agent for Redshift",
@@ -108,14 +142,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "commands",
-        choices=["build_view", "load_lineage", "load_stats"],
+        choices=["build_view", "load_lineage", "load_stats", "load_sqllineage"],
         type=str,
         nargs="+",
         help="""
         The command to execute.
         'build_view': Build views using dbt,
         'load_lineage': Load lineage data from created views to Quollio,
-        'load_stats': Load stats from created views to Quollio
+        'load_stats': Load stats from created views to Quollio,
+        'load_sqllineage': Load lineage data from sql parse result(alpha),
         """,
     )
     parser.add_argument(
@@ -179,9 +214,21 @@ if __name__ == "__main__":
         "--skip_heavy",
         type=bool,
         action=env_default("REDSHIFT_SKIP_HEAVY"),
-        default=False,
+        default=True,
         required=False,
         help="Skip heavy queries when building views by dbt",
+    )
+    parser.add_argument(
+        "--target_tables",
+        type=str,
+        nargs="*",
+        choices=["quollio_lineage_table_level", "quollio_lineage_view_level", "quollio_stats_columns"],
+        action=env_default("REDSHIFT_TARGET_TABLES"),
+        required=False,
+        help="Target tables you want to create with dbt module. \
+              You need to specify this parameter if you want to specify tables, not all ones. \
+              Please specify table name with blank delimiter like tableA tableB \
+              if you want to create two or more tables",
     )
     parser.add_argument(
         "--tenant_id",
@@ -189,6 +236,14 @@ if __name__ == "__main__":
         action=env_default("TENANT_ID"),
         required=False,
         help="The tenant id (company id) where the lineage and stats are loaded",
+    )
+    parser.add_argument(
+        "--log_level",
+        type=str,
+        choices=["debug", "info", "warn", "error", "none"],
+        action=env_default("LOG_LEVEL"),
+        required=False,
+        help="The log level for dbt commands. Default value is info",
     )
     parser.add_argument(
         "--api_url",
@@ -230,6 +285,8 @@ if __name__ == "__main__":
         build_view(
             conn=conn,
             skip_heavy=args.skip_heavy,
+            target_tables=args.target_tables,
+            log_level=args.log_level,
         )
     if "load_lineage" in args.commands:
         qdc_client = qdc.QDCExternalAPIClient(
@@ -249,6 +306,17 @@ if __name__ == "__main__":
             base_url=args.api_url,
         )
         load_stats(
+            conn=conn,
+            qdc_client=qdc_client,
+            tenant_id=args.tenant_id,
+        )
+    if "load_sqllineage" in args.commands:
+        qdc_client = qdc.QDCExternalAPIClient(
+            base_url=args.api_url,
+            client_id=args.client_id,
+            client_secret=args.client_secret,
+        )
+        load_sqllineage(
             conn=conn,
             qdc_client=qdc_client,
             tenant_id=args.tenant_id,

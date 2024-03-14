@@ -32,6 +32,24 @@ sources:
           - name: POLICIES_REFERENCED
             description: ''
             data_type: ARRAY
+      - name: QUERY_HISTORY
+        description: This Account Usage view can be used to query the query history of Snowflake tables. See https://docs.snowflake.com/en/sql-reference/account-usage/query_history.
+        columns:
+          - name: QUERY_ID
+            description: ''
+            data_type: VARCHAR
+          - name: QUERY_TEXT
+            description: ''
+            data_type: VARCHAR
+          - name: DATABASE_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: SCHEMA_NAME
+            description: ''
+            data_type: VARCHAR
+          - name: QUERY_TYPE
+            description: ''
+            data_type: VARCHAR
       - name: TABLES
         description: This Account Usage view displays a row for each table and view in the account. See https://docs.snowflake.com/en/sql-reference/account-usage/tables.html
         columns:

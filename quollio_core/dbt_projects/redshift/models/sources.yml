@@ -440,3 +440,24 @@ sources:
           - name: hastriggers
             description: ''
             data_type: boolean
+      - name: stl_querytext
+        description: The view pg_tables provides access to useful information about each table in the database. See https://www.postgresql.org/docs/current/view-pg-tables.html
+        columns:
+          - name: userid
+            description: ''
+            data_type: character
+          - name: xid
+            description: ''
+            data_type: character
+          - name: pid
+            description: ''
+            data_type: character
+          - name: query
+            description: ''
+            data_type: character
+          - name: sequence
+            description: ''
+            data_type: integer
+          - name: text
+            description: ''
+            data_type: character

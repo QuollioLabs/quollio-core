@@ -56,6 +56,7 @@ Create `.env` file in the root level of repository and set the following environ
 ```
 AWS_REGION=[AWS region]
 IMAGE_NAME=[Container image name you want to use]
+QUOLLIO_CORE_VERSION=[The quollio core version you use]
 ```
 
 To install local packages, run the following command.

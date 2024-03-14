@@ -22,4 +22,4 @@ RUN set -x \
 RUN set -x \
   && make install
 
-ENTRYPOINT [ "python", "-m" ]
+CMD [ "python", "-m" ]
