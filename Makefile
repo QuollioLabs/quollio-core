@@ -33,6 +33,10 @@ build:
 buildnc:
 		docker build --no-cache -t $(IMAGE_NAME) . -f ./Dockerfile --build-arg LIB_VERSION=$(QUOLLIO_CORE_VERSION) --platform=linux/amd64
 
+.PHONY: build-dev
+build-dev:
+		docker build -t $(IMAGE_NAME) . -f ./Dockerfile.dev --platform=linux/amd64
+
 .PHONY: build-local
 build-local:
 		docker build -t $(IMAGE_NAME) . -f ./Dockerfile.local --platform=linux/amd64
