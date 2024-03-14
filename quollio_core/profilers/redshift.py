@@ -1,6 +1,7 @@
 import logging
 
 from quollio_core.profilers.lineage import gen_table_lineage_payload, gen_table_lineage_payload_inputs
+from quollio_core.profilers.sqllineage import SQLLineage
 from quollio_core.profilers.stats import gen_table_stats_payload_from_tuple
 from quollio_core.repository import qdc, redshift
 
@@ -157,4 +158,57 @@ def redshift_table_stats(
                     if status_code == 200:
                         req_count += 1
     logger.info(f"Generating table stats is finished. {req_count} stats are ingested.")
+    return
+
+
+def redshift_table_level_sqllineage(
+    conn: redshift.RedshiftConnectionConfig,
+    qdc_client: qdc.QDCExternalAPIClient,
+    tenant_id: str,
+) -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+    redshift_connector = redshift.RedshiftQueryExecutor(conn)
+    results = redshift_connector.get_query_results(
+        query="""
+        SELECT
+            database_name
+            , schema_name
+            , query_text
+        FROM
+            {db}.{schema}.QUOLLIO_SQLLINEAGE_SOURCES
+        """.format(
+            db=conn.database,
+            schema=conn.schema,
+        )
+    )
+    update_table_lineage_inputs_list = list()
+    sql_lineage = SQLLineage()
+    for result in results:
+        src_tables, dest_table = sql_lineage.get_table_level_lineage_source(
+            sql=result[2],
+            dialect="redshift",
+            dest_db=result[0],
+            dest_schema=result[1],
+        )
+        update_table_lineage_inputs = sql_lineage.gen_lineage_input(
+            tenant_id=tenant_id, endpoint=conn.host, src_tables=src_tables, dest_table=dest_table
+        )
+        update_table_lineage_inputs_list.append(update_table_lineage_inputs)
+
+    req_count = 0
+    for update_table_lineage_input in update_table_lineage_inputs_list:
+        logger.info(
+            "Generating table lineage. downstream: {db} -> {schema} -> {table}".format(
+                db=update_table_lineage_input.downstream_database_name,
+                schema=update_table_lineage_input.downstream_schema_name,
+                table=update_table_lineage_input.downstream_table_name,
+            )
+        )
+        status_code = qdc_client.update_lineage_by_id(
+            global_id=update_table_lineage_input.downstream_global_id,
+            payload=update_table_lineage_input.upstreams.as_dict(),
+        )
+        if status_code == 200:
+            req_count += 1
+    logger.info(f"Generating table lineage is finished. {req_count} lineages are ingested.")
     return

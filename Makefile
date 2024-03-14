@@ -27,11 +27,11 @@ install-local:
 
 .PHONY: build
 build:
-		docker build -t $(IMAGE_NAME) . -f ./Dockerfile --platform=linux/amd64
+		docker build -t $(IMAGE_NAME) . -f ./Dockerfile --build-arg LIB_VERSION=$(QUOLLIO_CORE_VERSION) --platform=linux/amd64
 
 .PHONY: buildnc
 buildnc:
-		docker build --no-cache -t $(IMAGE_NAME) . -f ./Dockerfile --platform=linux/amd64
+		docker build --no-cache -t $(IMAGE_NAME) . -f ./Dockerfile --build-arg LIB_VERSION=$(QUOLLIO_CORE_VERSION) --platform=linux/amd64
 
 .PHONY: build-local
 build-local:

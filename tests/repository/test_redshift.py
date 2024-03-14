@@ -4,7 +4,40 @@ import unittest
 
 sys.path.insert(0, os.path.abspath("../.."))
 
-from quollio_core.repository.redshift import RedshiftConnectionConfig
+from quollio_core.repository.redshift import RedshiftConnectionConfig, RedshiftErrorCode
+
+
+class TestRedshiftErrorCode(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_redshift_error_code_normal(self):
+        test_cases = [
+            {
+                "input": {
+                    "error_code": "08000",
+                },
+                "expect": {
+                    "name": "CONNECTION_EXCEPTION",
+                    "code": "08000",
+                },
+            }
+        ]
+        for test_case in test_cases:
+            enum = RedshiftErrorCode(test_case["input"]["error_code"])
+            self.assertEqual(enum.name, test_case["expect"]["name"])
+            self.assertEqual(enum.value, test_case["expect"]["code"])
+
+            match_error_code = RedshiftErrorCode.match_error_code(test_case["input"]["error_code"])
+            self.assertEqual(match_error_code, True)
+
+    def test_redshift_error_code_error(self):
+        test_case = "dummy"
+        with self.assertRaises(ValueError):
+            RedshiftErrorCode(test_case)
+
+        match_error_code = RedshiftErrorCode.match_error_code(test_case)
+        self.assertEqual(match_error_code, False)
 
 
 class TestRedshiftConnectionConfig(unittest.TestCase):

@@ -1,0 +1,16 @@
+version: 2
+models:
+  - name: quollio_sqllineage_sources
+    columns:
+      - name: DATABASE_NAME
+        description: ''
+        data_type: VARCHAR
+      - name: SCHEMA_NAME
+        description: ''
+        data_type: VARCHAR
+      - name: TABLE_NAME
+        description: ''
+        data_type: VARCHAR
+      - name: QUERY_TEXT
+        description: ''
+        data_type: VARCHAR
