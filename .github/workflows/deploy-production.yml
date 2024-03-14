@@ -91,6 +91,5 @@ jobs:
           REPOSITORY: "quollio-core-universal"
           IMAGE_TAG: latest
         run: |
-          (${GITHUB_REF##*/})
           docker build --no-cache -t ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }} . -f ./Dockerfile --build-arg LIB_VERSION=${{ env.QUOLLIO_CORE_LATEST_VERSION }} --platform=linux/amd64
           docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
