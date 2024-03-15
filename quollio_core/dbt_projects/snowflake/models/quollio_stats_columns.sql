@@ -1,7 +1,7 @@
 {{
     config(
         materialized='divided_view',
-        chunk=1000
+        chunk=20
     )
 }}
 -- depends_on: {{ ref('quollio_stats_profiling_columns') }}

@@ -2,6 +2,7 @@
 {%- set identifier = model['alias'] %}
 {%- set target_relations = [] %}
 {%- set chunk = config.get('chunk') %}
+{%- set grant_config = config.get('grants') %}
 
 {{ run_hooks(pre_hooks, inside_transaction=False) }}
 -- `BEGIN` happens here:
@@ -46,6 +47,9 @@ SELECT * FROM {{  ref('quollio_stats_profiling_columns')  }} WHERE NOT startswit
   {% call statement("main") %}
     {{ get_create_view_as_sql(target_relation, build_sql) }}
   {% endcall %}
+  {%- set full_refresh_mode = (should_full_refresh()) -%}
+  {%- set should_revoke = should_revoke(target_relation, full_refresh_mode) %}
+  {%- do apply_grants(target_relation, grant_config, should_revoke) %}
   {%- set target_relations = target_relations.append(target_relation) %}
 {%- endfor -%}
 
