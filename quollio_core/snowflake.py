@@ -50,11 +50,10 @@ def build_view(
         options=["--no-use-colors", "--log-level", log_level, "--vars", options],
     )
     run_options = ["--no-use-colors", "--log-level", log_level, "--vars", options]
-    target_tables_list = target_tables.split()
-    if target_tables_list is not None:
-        if "quollio_stats_columns" in target_tables_list:
-            target_tables_list.append("quollio_stats_profiling_columns")
-        target_tables_str = " ".join(target_tables_list)
+    if target_tables is not None:
+        if "quollio_stats_columns" in target_tables:
+            target_tables.append("quollio_stats_profiling_columns")
+        target_tables_str = " ".join(target_tables)
         run_options.append("--select")
         run_options.append(target_tables_str)
 

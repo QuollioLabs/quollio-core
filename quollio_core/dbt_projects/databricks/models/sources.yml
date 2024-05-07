@@ -1,0 +1,84 @@
+version: 2
+
+sources: 
+  - name: access
+    database: system
+    schema: access
+    tables: 
+      - name: table_lineage
+        description: Describes table level lineage
+        columns:
+          - name: source_table_full_name
+            description: ''
+            type: string
+          - name: target_table_full_name
+            description: ''
+            type: string
+          - name: target_type
+            description: ''
+            type: string
+          - name: event_time
+            description: ''
+            type: timestamp
+
+      - name: column_lineage
+        description: Describes column level lineage
+        columns:
+          - name: source_table_full_name
+            description: ''
+            type: string
+          - name: target_table_full_name
+            description: ''
+            type: string
+          - name: event_time
+            description: ''
+            type: timestamp
+          - name: source_column_name
+            description: ''
+            type: string
+          - name: target_column_name
+            description: ''
+            type: string
+  
+  - name: inf_sch
+    database: system
+    schema: information_schema
+    tables: 
+      - name: tables
+        description: Lists existing tables (i.e., not deleted).
+        columns:
+          - name: table_catalog
+            description: ''
+            type: string
+          - name: table_schema
+            description: ''
+            type: string
+          - name: table_name
+            description: ''
+            type: string
+
+      - name: views
+        description: Lists existing views (i.e., not deleted). Views are treated as tables.
+        columns:
+          - name: table_catalog
+            description: ''
+            type: string
+          - name: table_schema
+            description: ''
+            type: string
+          - name: table_name
+            description: ''
+            type: string
+
+      - name: columns
+        description: ''
+        columns:
+          - name: table_catalog
+            description: ''
+            type: string
+          - name: table_schema
+            description: ''
+            type: string
+          - name: table_name
+            description: ''
+            type: string

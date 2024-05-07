@@ -22,4 +22,8 @@ RUN set -x \
 RUN set -x \
   && make install
 
+# Install libraries for testing
+RUN set -x \
+  && pip install quollio-core[test]
+
 CMD [ "python", "-m" ]

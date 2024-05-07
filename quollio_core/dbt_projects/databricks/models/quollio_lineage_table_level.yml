@@ -1,0 +1,11 @@
+version: 2
+
+model:
+  - name: quollio_lineage_column_level
+    columns: 
+      - name: UPSTREAM_TABLES
+        description: 'String column with all upstream tables in JSON format'
+        type: string
+      - name: DOWNSTREAM_TABLE_NAME
+        description: 'Full downstream table name in <catalog>.<schema>.<table> format'
+        type: string

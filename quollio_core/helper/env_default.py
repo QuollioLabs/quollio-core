@@ -16,7 +16,10 @@ class EnvDefault(argparse.Action):
     def __init__(self, envvar, required=True, default=None, **kwargs):
         # override values if envvar exists
         if envvar in os.environ:
-            default = os.environ[envvar]
+            if kwargs.get("nargs", None) is None:
+                default = os.environ[envvar]
+            else:
+                default = os.environ[envvar].split(" ")
         if required and default:
             required = False
         super(EnvDefault, self).__init__(default=default, required=required, **kwargs)
