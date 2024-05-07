@@ -77,7 +77,6 @@ def gen_table_stats_payload(tenant_id: str, endpoint: str, stats: List[Dict[str,
         table_global_id = new_global_id(
             tenant_id=tenant_id, cluster_id=endpoint, data_id=global_id_arg, data_type="column"
         )
-
         stats_request = StatsRequest(
             global_id=table_global_id,
             db=stat["DB_NAME"],

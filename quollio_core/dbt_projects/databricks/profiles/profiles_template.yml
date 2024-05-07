@@ -1,0 +1,14 @@
+quollio_intelligence_databricks:
+  target: project
+  outputs:
+    project:
+      type: databricks
+      host: {{ host }}
+      http_path: {{ http_path }}
+      catalog: {{ catalog }}
+      schema: {{ schema }}
+      auth_type: oauth
+      client_id: {{ client_id }}
+      client_secret: {{ client_secret }}
+      databricks_port: {{ databricks_port }}
+

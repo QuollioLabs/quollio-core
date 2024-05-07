@@ -141,3 +141,15 @@ def parse_snowflake_results(results: List[Dict[str, str]]):
         payload["UPSTREAM_TABLES"] = json.loads(result["UPSTREAM_TABLES"])
         payloads.append(payload)
     return payloads
+
+
+def parse_databricks_table_lineage(results: List) -> List[Dict[str, Dict]]:
+    # Parses results from Quollio Databricks lineage table
+    # Returns tuple of downstream_table_name (0) and upstream_tables (1)
+    payloads = list()
+    for result in results:
+        payload = dict()
+        payload["DOWNSTREAM_TABLE_NAME"] = result["DOWNSTREAM_TABLE_NAME"]
+        payload["UPSTREAM_TABLES"] = json.loads(result["UPSTREAM_TABLES"])
+        payloads.append(payload)
+    return payloads

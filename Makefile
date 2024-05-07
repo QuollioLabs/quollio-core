@@ -6,7 +6,9 @@ help:
 
 .PHONY: test
 test:
-		python3 -m unittest discover tests
+		python3 -m coverage run -m unittest discover tests
+		coverage report -m
+
 
 .PHONY: fmt
 fmt:
