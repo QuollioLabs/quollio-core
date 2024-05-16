@@ -136,16 +136,6 @@ def _get_column_stats(
             raise ValueError(f"Invalid table name: {table['table_fqdn']}")
         with databricks.DatabricksQueryExecutor(config=conn) as databricks_executor:
             query = """
-                WITH MaxCounts AS (
-                    SELECT
-                        t.COLUMN_NAME,
-                        MAX(item.count) AS max_count,
-                        MAX(t.window) AS latest
-                    FROM
-                        {monitoring_table} t
-                    LATERAL VIEW EXPLODE(t.frequent_items) AS item
-                    GROUP BY t.COLUMN_NAME
-                )
                 SELECT
                     "{monitored_table_catalog}" as DB_NAME,
                     "{monitored_table_schema}" as SCHEMA_NAME,
@@ -159,14 +149,21 @@ def _get_column_stats(
                     t.MEDIAN as MEDIAN_VALUE,
                     t.STDDEV as STDDEV_VALUE,
                     t.NUM_NULLS as NULL_COUNT,
-                    item.item AS MODE_VALUE
+                    t.frequent_items[0].item AS MODE_VALUE,
+                    MAX(t.window) AS LATEST
                 FROM
                     {monitoring_table} t
-                JOIN MaxCounts mc ON t.COLUMN_NAME = mc.COLUMN_NAME
-                LATERAL VIEW EXPLODE(t.frequent_items) AS item
-                WHERE
-                    item.count = mc.max_count
-                    AND t.window = mc.latest
+                GROUP BY
+                    t.COLUMN_NAME,
+                    t.DATA_TYPE,
+                    t.distinct_count,
+                    t.MAX,
+                    t.MIN,
+                    t.AVG,
+                    t.MEDIAN,
+                    t.STDDEV,
+                    t.NUM_NULLS,
+                    t.frequent_items
                 """.format(
                 monitoring_table=table["table_fqdn"],
                 monitored_table_catalog=monitored_table[0],
