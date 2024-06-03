@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 def build_view(
     conn: db.DatabricksConnectionConfig,
-    target_tables: str,
+    target_tables: str = "",
     log_level: str = "info",
 ) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
@@ -41,7 +41,13 @@ def build_view(
         options=["--no-use-colors", "--log-level", log_level],
     )
 
-    run_options = ["--no-use-colors", "--log-level", log_level, "--select", target_tables]
+    run_options = ["--no-use-colors", "--log-level", log_level]
+
+    if target_tables is not None:
+        target_tables_str = " ".join(target_tables)
+        run_options.append("--select")
+        run_options.append(target_tables_str)
+
     dbt_client.invoke(
         cmd="run",
         project_dir=project_path,
@@ -106,7 +112,6 @@ if __name__ == "__main__":
         'build_view': Build views using dbt,
         'load_lineage': Load lineage data from created views to Quollio,
         'load_stats': Load stats from created views to Quollio,
-        'load_sqllineage': Load lineage data from sql parse result(alpha),
         """,
     )
     parser.add_argument(
@@ -193,14 +198,24 @@ if __name__ == "__main__":
     parser.add_argument(
         "--target_tables",
         type=str,
-        nargs="*",
-        choices=["quollio_lineage_table_level", "quollio_lineage_view_level"],
+        nargs="+",
+        choices=["quollio_lineage_table_level", "quollio_lineage_column_level"],
         action=env_default("DATABRICKS_TARGET_TABLES"),
         required=False,
         help="Target tables you want to create with dbt module. \
               You need to specify this parameter if you want to specify tables, not all ones. \
               Please specify table name with blank delimiter like tableA tableB \
               if you want to create two or more tables",
+    )
+
+    parser.add_argument(
+        "--monitoring_table_suffix",
+        type=str,
+        action=env_default("DATABRICKS_MONITORING_TABLE_SUFFIX"),
+        required=False,
+        help="Sets the monitoring tables suffix for databricks. \
+              This is used to identify the monitoring tables created by the databricks monitoring tool. \
+              Default value is _profile_metrics",
     )
 
     args = parser.parse_args()
@@ -234,4 +249,9 @@ if __name__ == "__main__":
         qdc_client = qdc.QDCExternalAPIClient(
             base_url=args.api_url, client_id=args.client_id, client_secret=args.client_secret
         )
-        databricks_column_stats(conn=conn, qdc_client=qdc_client, tenant_id=args.tenant_id)
+        databricks_column_stats(
+            conn=conn,
+            qdc_client=qdc_client,
+            tenant_id=args.tenant_id,
+            monitoring_table_suffix=args.monitoring_table_suffix,
+        )

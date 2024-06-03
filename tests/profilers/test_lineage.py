@@ -2,9 +2,8 @@ import os
 import sys
 import unittest
 
-sys.path.insert(0, os.path.abspath("../.."))
-
 from quollio_core.helper.core import new_global_id
+from quollio_core.profilers.bigquery import parse_bigquery_table_lineage
 from quollio_core.profilers.lineage import (
     LineageInput,
     LineageInputs,
@@ -13,6 +12,8 @@ from quollio_core.profilers.lineage import (
     gen_table_lineage_payload_inputs,
     parse_snowflake_results,
 )
+
+sys.path.insert(0, os.path.abspath("../.."))
 
 
 class TestLineage(unittest.TestCase):
@@ -443,6 +444,40 @@ class TestLineage(unittest.TestCase):
         for test_case in test_cases:
             res = parse_snowflake_results(test_case["input"])
             self.assertEqual(res, test_case["expect"])
+
+    def test_parse_bigquery_table_lineage(self):
+        # Define test input and expected output
+        tables = {
+            "downstream_table1": ["upstream_table1", "upstream_table2"],
+            "downstream_table2": ["upstream_table3"],
+            "downstream_table3": [],
+        }
+
+        expected_output = [
+            {
+                "DOWNSTREAM_TABLE_NAME": "downstream_table1",
+                "UPSTREAM_TABLES": [
+                    {"upstream_object_name": "upstream_table1"},
+                    {"upstream_object_name": "upstream_table2"},
+                ],
+            },
+            {
+                "DOWNSTREAM_TABLE_NAME": "downstream_table2",
+                "UPSTREAM_TABLES": [
+                    {"upstream_object_name": "upstream_table3"},
+                ],
+            },
+            {
+                "DOWNSTREAM_TABLE_NAME": "downstream_table3",
+                "UPSTREAM_TABLES": [],
+            },
+        ]
+
+        # Call the function with test input
+        result = parse_bigquery_table_lineage(tables)
+
+        # Assert the result matches the expected output
+        self.assertEqual(result, expected_output)
 
 
 if __name__ == "__main__":

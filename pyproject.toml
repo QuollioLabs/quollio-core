@@ -43,6 +43,11 @@ dependencies = [
     ,"databricks-sdk==0.17.0"
     ,"databricks-sql-connector==2.9.5"
     ,"sqlglot==20.8.0"
+    ,"google-cloud==0.34.0"
+    ,"google-cloud-bigquery==3.22.0"
+    ,"google-cloud-datacatalog==3.19.0"
+    ,"google-cloud-datacatalog-lineage==0.3.6"
+    ,"google-api-python-client==2.131.0"
 ]
 dynamic = ["version", "description"]
 

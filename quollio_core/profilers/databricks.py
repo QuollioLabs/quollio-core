@@ -99,7 +99,7 @@ def databricks_column_level_lineage(
 
 
 def _get_monitoring_tables(
-    conn: databricks.DatabricksConnectionConfig, monitoring_table_id: str = "_profile_metrics"
+    conn: databricks.DatabricksConnectionConfig, monitoring_table_suffix: str = "_profile_metrics"
 ) -> List[Dict[str, str]]:
     tables = []
     query = f"""
@@ -110,7 +110,7 @@ def _get_monitoring_tables(
             CONCAT(table_catalog, '.', table_schema, '.', table_name) AS table_fqdn
         FROM
             system.information_schema.tables
-        WHERE table_name LIKE "%{monitoring_table_id}"
+        WHERE table_name LIKE "%{monitoring_table_suffix}"
         """
     with databricks.DatabricksQueryExecutor(config=conn) as databricks_executor:
         tables = databricks_executor.get_query_results(query)
@@ -123,9 +123,9 @@ def _get_monitoring_tables(
 
 
 def _get_column_stats(
-    conn: databricks.DatabricksConnectionConfig, monitoring_table_id: str = "_profile_metrics"
+    conn: databricks.DatabricksConnectionConfig, monitoring_table_suffix: str = "_profile_metrics"
 ) -> List[Dict[str, str]]:
-    tables = _get_monitoring_tables(conn, monitoring_table_id)
+    tables = _get_monitoring_tables(conn, monitoring_table_suffix)
     if not tables:
         return []
     stats = []
@@ -178,9 +178,9 @@ def databricks_column_stats(
     conn: databricks.DatabricksConnectionConfig,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
-    monitoring_table_id: str = "_profile_metrics",
+    monitoring_table_suffix: str = "_profile_metrics",
 ) -> None:
-    table_stats = _get_column_stats(conn, monitoring_table_id)
+    table_stats = _get_column_stats(conn, monitoring_table_suffix)
     for table in table_stats:
         stats = gen_table_stats_payload(tenant_id, conn.host, table)
         for stat in stats:

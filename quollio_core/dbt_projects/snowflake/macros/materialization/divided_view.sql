@@ -24,6 +24,7 @@ SELECT * FROM {{  ref('quollio_stats_profiling_columns')  }} WHERE NOT startswit
   {%- set build_sql %}
   {%- for record in records[i: i+chunk] -%}
     {%- if not loop.first %}UNION{% endif %}
+
     SELECT
       DISTINCT
       '{{record[0]}}' as db_name
@@ -38,7 +39,7 @@ SELECT * FROM {{  ref('quollio_stats_profiling_columns')  }} WHERE NOT startswit
       , {% if record[5] == true %}median("{{record[3]}}"){% else %}null{% endif %} AS median_value
       , {% if record[5] == true %}approx_top_k("{{record[3]}}")[0][0]{% else %}null{% endif %} AS mode_value
       , {% if record[5] == true %}stddev("{{record[3]}}"){% else %}null{% endif %} AS stddev_value
-    FROM {{ record[0] }}.{{ record[1] }}.{{ record[2] }} {{ var("sample_method") }}
+    FROM "{{record[0]}}"."{{record[1]}}"."{{record[2]}}" {{ var("sample_method") }}
   {% endfor -%}
   {%- endset %}
   -- create a view with a index as suffix
