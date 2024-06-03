@@ -153,3 +153,17 @@ def parse_databricks_table_lineage(results: List) -> List[Dict[str, Dict]]:
         payload["UPSTREAM_TABLES"] = json.loads(result["UPSTREAM_TABLES"])
         payloads.append(payload)
     return payloads
+
+
+def parse_bigquery_table_lineage(tables: Dict) -> List[Dict[str, Dict]]:
+    payloads = list()
+    for downstream, upstream in tables.items():
+        payload = {
+            "DOWNSTREAM_TABLE_NAME": "",
+            "UPSTREAM_TABLES": [],
+        }
+        payload["DOWNSTREAM_TABLE_NAME"] = downstream
+        for upstream_table in upstream:
+            payload["UPSTREAM_TABLES"].append({"upstream_object_name": upstream_table})
+        payloads.append(payload)
+    return payloads
