@@ -1,28 +1,67 @@
 {%- materialization divided_view, default %}
 {%- set identifier = model['alias'] %}
 {%- set target_relations = [] %}
-{%- set chunk = config.get('chunk') %}
 {%- set grant_config = config.get('grants') %}
 
 {{ run_hooks(pre_hooks, inside_transaction=False) }}
 -- `BEGIN` happens here:
 {{ run_hooks(pre_hooks, inside_transaction=True) }}
 
--- fetch records
-{%- set query_quollio_stats_profiling_columns -%}
-SELECT * FROM {{  ref('quollio_stats_profiling_columns')  }} WHERE table_name not like 'quollio_%'
+-- fetch target_tables
+{%- set query_stats_target_tables -%}
+    SELECT
+      distinct
+      database_name
+      , schema_name
+      , table_name
+    FROM
+      {{ ref('quollio_stats_profiling_columns') }}
+    WHERE
+      table_name not like 'quollio_%%'
 {%- endset -%}
-{%- set results = run_query(query_quollio_stats_profiling_columns) -%}
+{%- set results = run_query(query_stats_target_tables) -%}
 {%- if execute -%}
-{%- set records = results.rows -%}
+{%- set stats_target_tables = results.rows -%}
 {%- else -%}
-{%- set records = [] -%}
+{%- set stats_target_tables = [] -%}
+{%- endif -%}
+
+-- skip creating views if the target profiling columns don't exist.
+{%- if stats_target_tables | length == 0 -%}
+  {% call statement("main") %}
+    {{ log("No records found. Just execute select stmt for skipping call statement.", info=True) }}
+    select null
+  {% endcall %}
+  {%- set full_refresh_mode = (should_full_refresh()) -%}
+  {%- set should_revoke = should_revoke(target_relation, full_refresh_mode) %}
 {%- endif -%}
 
 -- build sql
-{%- for i in range(0, records|length, chunk) -%}
-  {%- set build_sql %}
-  {%- for record in records[i: i+chunk] -%}
+{%- for stats_target_table in stats_target_tables -%}
+  -- get columns for statistics. 
+  -- LISTAGG function can't be used for sys table, then it's necessary to get column for each table. 
+  -- See https://docs.aws.amazon.com/redshift/latest/dg/c_join_PG.html.
+  {%- set stats_target_columns %}
+      SELECT
+        database_name
+        , schema_name
+        , table_name
+        , column_name
+        , is_bool
+        , is_calculable
+      FROM
+        {{ ref('quollio_stats_profiling_columns') }}
+      WHERE
+        database_name = '{{stats_target_table[0]}}'
+        AND schema_name = '{{stats_target_table[1]}}'
+        AND table_name = '{{stats_target_table[2]}}'
+  {%- endset -%}
+
+  {%- set results = run_query(stats_target_columns) -%}
+  {%- set stats_target_columns = results.rows -%}
+
+  {%- set sql_for_column_stats %}
+  {%- for stats_target_column in stats_target_columns -%}
     {%- if not loop.first -%}UNION{% endif %}
     SELECT
       main.db_name
@@ -41,33 +80,33 @@ SELECT * FROM {{  ref('quollio_stats_profiling_columns')  }} WHERE table_name no
       (
       SELECT
         DISTINCT
-        '{{record[0]}}'::varchar as db_name
-        , '{{record[1]}}'::varchar as schema_name
-        , '{{record[2]}}'::varchar as table_name
-        , '{{record[3]}}'::varchar as column_name
-        , {% if var("skip_heavy") == false and record[5] == true %}cast(max("{{record[3]}}") as varchar){% else %}null::varchar{% endif %} AS max_value
-        , {% if var("skip_heavy") == false and record[5] == true %}cast(min("{{record[3]}}") as varchar){% else %}null::varchar{% endif %} AS min_value
+        '{{stats_target_column[0]}}'::varchar as db_name
+        , '{{stats_target_column[1]}}'::varchar as schema_name
+        , '{{stats_target_column[2]}}'::varchar as table_name
+        , '{{stats_target_column[3]}}'::varchar as column_name
+        , {% if var("aggregate_all") == True and stats_target_column[5] == True %}cast(max("{{stats_target_column[3]}}") as varchar){% else %}null::varchar{% endif %} AS max_value
+        , {% if var("aggregate_all") == True and stats_target_column[5] == True %}cast(min("{{stats_target_column[3]}}") as varchar){% else %}null::varchar{% endif %} AS min_value
         -- requires full table scan
-        , {% if var("skip_heavy") == false %}cast(SUM(NVL2("{{record[3]}}", 0, 1)) as integer){% else %}null::integer{% endif %} AS null_count
-        , APPROXIMATE COUNT(DISTINCT "{{record[3]}}") AS cardinality
+        , {% if var("aggregate_all") == True %}cast(SUM(NVL2("{{stats_target_column[3]}}", 0, 1)) as integer){% else %}null::integer{% endif %} AS null_count
+        , APPROXIMATE COUNT(DISTINCT "{{stats_target_column[3]}}") AS cardinality
         -- requires full table scan
-        , {% if var("skip_heavy") == false and record[5] == true %}cast(avg("{{record[3]}}")as varchar){% else %}null::varchar{% endif %} AS avg_value
-        , {% if var("skip_heavy") == false and record[5] == true %}cast(median("{{record[3]}}") as varchar){% else %}null::varchar{% endif %} AS median_value
+        , {% if var("aggregate_all") == True and stats_target_column[5] == True %}cast(avg("{{stats_target_column[3]}}")as varchar){% else %}null::varchar{% endif %} AS avg_value
+        , {% if var("aggregate_all") == True and stats_target_column[5] == True %}cast(median("{{stats_target_column[3]}}") as varchar){% else %}null::varchar{% endif %} AS median_value
         -- requires full table scan
-        , {% if record[5] == true %}cast(STDDEV_SAMP("{{record[3]}}") as integer){% else %}null::integer{% endif %} AS stddev_value
-      FROM {{ record[0] }}.{{ record[1] }}.{{ record[2] }}
+        , {% if stats_target_column[5] == True %}cast(STDDEV_SAMP("{{stats_target_column[3]}}") as integer){% else %}null::integer{% endif %} AS stddev_value
+      FROM {{ stats_target_column[0] }}.{{ stats_target_column[1] }}.{{ stats_target_column[2] }}
     ) main, (
-      {%- if var("skip_heavy") == false and record[4] == false %}
+      {%- if var("aggregate_all") == True and stats_target_column[4] == false %}
         SELECT
-          cast("{{record[3]}}" as varchar) mode_value
+          cast("{{stats_target_column[3]}}" as varchar) mode_value
         FROM (
            SELECT
             DISTINCT
-            "{{record[3]}}"
+            "{{stats_target_column[3]}}"
             , ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC) AS row_num
-          FROM {{ record[0] }}.{{ record[1] }}.{{ record[2] }}
+          FROM {{ stats_target_column[0] }}.{{ stats_target_column[1] }}.{{ stats_target_column[2] }}
           GROUP BY
-            "{{record[3]}}"
+            "{{stats_target_column[3]}}"
         )
         WHERE
           row_num = 1
@@ -77,11 +116,11 @@ SELECT * FROM {{  ref('quollio_stats_profiling_columns')  }} WHERE table_name no
   {% endfor -%}
   {%- endset %}
   -- create a view with a index as suffix
-  {%- set target_identifier = "%s_%d"|format(model['name'], loop.index) %}
+  {%- set target_identifier = "%s_%s_%s_%s"|format(model['name'], stats_target_table[0], stats_target_table[1], stats_target_table[2]) %}
   {%- set target_relation = api.Relation.create(identifier=target_identifier, schema=schema, database=database, type='view') %}
   -- {{ drop_relation_if_exists(target_relation) }}
   {% call statement("main") %}
-    {{ get_replace_view_sql(target_relation, build_sql) }}
+    {{ get_replace_view_sql(target_relation, sql_for_column_stats) }}
   {% endcall %}
   {%- set full_refresh_mode = (should_full_refresh()) -%}
   {%- set should_revoke = should_revoke(target_relation, full_refresh_mode) %}

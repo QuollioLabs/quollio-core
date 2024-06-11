@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def build_view(
     conn: redshift.RedshiftConnectionConfig,
-    skip_heavy: bool,
+    aggregate_all: bool = False,
     target_tables: str = "",
     log_level: str = "info",
 ) -> None:
@@ -29,9 +29,9 @@ def build_view(
     project_path = f"{current_dir}/dbt_projects/redshift"
     template_path = f"{current_dir}/dbt_projects/redshift/profiles"
     template_name = "profiles_template.yml"
-    options = '{{"query_user": {query_user}, "skip_heavy": {skip_heavy}, "target_database": {database}}}'.format(
+    options = '{{"query_user": {query_user}, "aggregate_all": {aggregate_all}, "target_database": {database}}}'.format(
         query_user=conn.query_user,
-        skip_heavy=skip_heavy,
+        aggregate_all=aggregate_all,
         database=conn.database,
     )
 
@@ -210,12 +210,12 @@ if __name__ == "__main__":
         help="Target schema name where the views are built by dbt",
     )
     parser.add_argument(
-        "--skip_heavy",
+        "--aggregate_all",
         type=bool,
-        action=env_default("REDSHIFT_SKIP_HEAVY"),
-        default=True,
+        action=env_default("REDSHIFT_AGGREGATE_ALL", store_true=True),
+        default=False,
         required=False,
-        help="Skip heavy queries when building views by dbt",
+        help="Aggregate all stats values. False by default.",
     )
     parser.add_argument(
         "--target_tables",
@@ -283,7 +283,7 @@ if __name__ == "__main__":
     if "build_view" in args.commands:
         build_view(
             conn=conn,
-            skip_heavy=args.skip_heavy,
+            aggregate_all=args.aggregate_all,
             target_tables=args.target_tables,
             log_level=args.log_level,
         )

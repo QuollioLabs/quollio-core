@@ -31,3 +31,7 @@ def setup_dbt_profile(connections_json: Dict[str, str], template_path: str, temp
     with open(profile_path, "w") as profiles:
         yaml.dump(yaml.safe_load(profiles_body), profiles, default_flow_style=False, allow_unicode=True)
     return
+
+
+def trim_prefix(s: str, prefix: str) -> str:
+    return s.lstrip(prefix)

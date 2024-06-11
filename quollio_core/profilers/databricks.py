@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 def databricks_table_level_lineage(
     conn: databricks.DatabricksConnectionConfig,
+    endpoint: str,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
     dbt_table_name: str = "quollio_lineage_table_level",
@@ -31,7 +32,7 @@ def databricks_table_level_lineage(
         tables = parse_databricks_table_lineage(results)
         update_table_lineage_inputs = gen_table_lineage_payload(
             tenant_id=tenant_id,
-            endpoint=conn.host,
+            endpoint=endpoint,
             tables=tables,
         )
 
@@ -55,6 +56,7 @@ def databricks_table_level_lineage(
 
 def databricks_column_level_lineage(
     conn: databricks.DatabricksConnectionConfig,
+    endpoint: str,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
     dbt_table_name: str = "quollio_lineage_column_level",
@@ -72,7 +74,7 @@ def databricks_column_level_lineage(
 
     update_column_lineage_inputs = gen_column_lineage_payload(
         tenant_id=tenant_id,
-        endpoint=conn.host,
+        endpoint=endpoint,
         columns=results,
     )
 
@@ -110,7 +112,9 @@ def _get_monitoring_tables(
             CONCAT(table_catalog, '.', table_schema, '.', table_name) AS table_fqdn
         FROM
             system.information_schema.tables
-        WHERE table_name LIKE "%{monitoring_table_suffix}"
+        WHERE
+            table_name LIKE "%{monitoring_table_suffix}"
+            AND table_name NOT LIKE ('quollio_%')
         """
     with databricks.DatabricksQueryExecutor(config=conn) as databricks_executor:
         tables = databricks_executor.get_query_results(query)
@@ -153,6 +157,8 @@ def _get_column_stats(
                     MAX(t.window) AS LATEST
                 FROM
                     {monitoring_table} t
+                WHERE
+                    t.column_name not in (':table')
                 GROUP BY
                     t.COLUMN_NAME,
                     t.DATA_TYPE,
@@ -176,13 +182,14 @@ def _get_column_stats(
 
 def databricks_column_stats(
     conn: databricks.DatabricksConnectionConfig,
+    endpoint: str,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
     monitoring_table_suffix: str = "_profile_metrics",
 ) -> None:
     table_stats = _get_column_stats(conn, monitoring_table_suffix)
     for table in table_stats:
-        stats = gen_table_stats_payload(tenant_id, conn.host, table)
+        stats = gen_table_stats_payload(tenant_id=tenant_id, endpoint=endpoint, stats=table)
         for stat in stats:
             status_code = qdc_client.update_stats_by_id(
                 global_id=stat.global_id,

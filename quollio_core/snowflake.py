@@ -72,6 +72,7 @@ def load_lineage(
     conn: snowflake.SnowflakeConnectionConfig,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
+    enable_column_lineage: bool = False,
 ) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
@@ -82,12 +83,17 @@ def load_lineage(
         tenant_id=tenant_id,
     )
 
-    logger.info("Generate Snowflake column to column lineage.")
-    snowflake_column_to_column_lineage(
-        conn=conn,
-        qdc_client=qdc_client,
-        tenant_id=tenant_id,
-    )
+    if enable_column_lineage:
+        logger.info(
+            f"enable_column_lineage is set to {enable_column_lineage}.Generate Snowflake column to column lineage."
+        )
+        snowflake_column_to_column_lineage(
+            conn=conn,
+            qdc_client=qdc_client,
+            tenant_id=tenant_id,
+        )
+    else:
+        logger.info("Skip column lineage ingestion. Set enable_column_lineage to True if you ingest column lineage.")
 
     logger.info("Lineage data is successfully loaded.")
 
@@ -264,6 +270,14 @@ if __name__ == "__main__":
         required=False,
         help="The client secrete that is created on Quollio console to let clients access Quollio External API",
     )
+    parser.add_argument(
+        "--enable_column_lineage",
+        type=bool,
+        action=env_default("ENABLE_COLUMN_LINEAGE", store_true=True),
+        default=False,
+        required=False,
+        help="Whether to ingest column lineage into QDIC or not. Default value is False",
+    )
     args = parser.parse_args()
     conn = snowflake.SnowflakeConnectionConfig(
         account_id=args.account_id,
@@ -296,6 +310,7 @@ if __name__ == "__main__":
             conn=conn,
             qdc_client=qdc_client,
             tenant_id=args.tenant_id,
+            enable_column_lineage=args.enable_column_lineage,
         )
     if "load_stats" in args.commands:
         qdc_client = qdc.QDCExternalAPIClient(

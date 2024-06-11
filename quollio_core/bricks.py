@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 
-from quollio_core.helper.core import setup_dbt_profile
+from quollio_core.helper.core import setup_dbt_profile, trim_prefix
 from quollio_core.helper.env_default import env_default
 from quollio_core.profilers.databricks import (
     databricks_column_level_lineage,
@@ -59,20 +59,35 @@ def build_view(
 
 def load_lineage(
     conn: db.DatabricksConnectionConfig,
+    endpoint: str,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
+    enable_column_lineage: bool = False,
 ) -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Generate Databricks table to table lineage.")
     databricks_table_level_lineage(
-        conn=conn, qdc_client=qdc_client, tenant_id=tenant_id, dbt_table_name="quollio_lineage_table_level"
+        conn=conn,
+        endpoint=endpoint,
+        qdc_client=qdc_client,
+        tenant_id=tenant_id,
+        dbt_table_name="quollio_lineage_table_level",
     )
 
-    logger.info("Generate Databricks column to column lineage.")
-    databricks_column_level_lineage(
-        conn=conn, qdc_client=qdc_client, tenant_id=tenant_id, dbt_table_name="quollio_lineage_column_level"
-    )
+    if enable_column_lineage:
+        logger.info(
+            f"enable_column_lineage is set to {enable_column_lineage}.Generate Databricks column to column lineage."
+        )
+        databricks_column_level_lineage(
+            conn=conn,
+            endpoint=endpoint,
+            qdc_client=qdc_client,
+            tenant_id=tenant_id,
+            dbt_table_name="quollio_lineage_column_level",
+        )
+    else:
+        logger.info("Skip column lineage ingestion. Set enable_column_lineage to True if you ingest column lineage.")
 
     logger.info("Lineage data is successfully loaded.")
     return
@@ -80,6 +95,7 @@ def load_lineage(
 
 def load_column_stats(
     conn: db.DatabricksConnectionConfig,
+    endpoint: str,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
@@ -88,6 +104,7 @@ def load_column_stats(
     logger.info("Generate Databricks column stats.")
     databricks_column_stats(
         conn=conn,
+        endpoint=endpoint,
         qdc_client=qdc_client,
         tenant_id=tenant_id,
     )
@@ -207,7 +224,6 @@ if __name__ == "__main__":
               Please specify table name with blank delimiter like tableA tableB \
               if you want to create two or more tables",
     )
-
     parser.add_argument(
         "--monitoring_table_suffix",
         type=str,
@@ -217,11 +233,20 @@ if __name__ == "__main__":
               This is used to identify the monitoring tables created by the databricks monitoring tool. \
               Default value is _profile_metrics",
     )
+    parser.add_argument(
+        "--enable_column_lineage",
+        type=bool,
+        action=env_default("ENABLE_COLUMN_LINEAGE", store_true=True),
+        default=False,
+        required=False,
+        help="Whether to ingest column lineage into QDIC or not. Default value is False",
+    )
 
     args = parser.parse_args()
 
     conn = db.DatabricksConnectionConfig(
-        host=args.host,
+        # MEMO: Metadata agent allows the string 'https://' as a host name but is not allowed by intelligence agent.
+        host=trim_prefix(args.host, "https://"),
         http_path=args.http_path,
         client_id=args.databricks_client_id,
         client_secret=args.databricks_client_secret,
@@ -243,7 +268,13 @@ if __name__ == "__main__":
         qdc_client = qdc.QDCExternalAPIClient(
             base_url=args.api_url, client_id=args.client_id, client_secret=args.client_secret
         )
-        load_lineage(conn=conn, qdc_client=qdc_client, tenant_id=args.tenant_id)
+        load_lineage(
+            conn=conn,
+            endpoint=args.host,
+            qdc_client=qdc_client,
+            tenant_id=args.tenant_id,
+            enable_column_lineage=args.enable_column_lineage,
+        )
 
     if "load_stats" in args.commands:
         qdc_client = qdc.QDCExternalAPIClient(
@@ -251,6 +282,7 @@ if __name__ == "__main__":
         )
         databricks_column_stats(
             conn=conn,
+            endpoint=args.host,
             qdc_client=qdc_client,
             tenant_id=args.tenant_id,
             monitoring_table_suffix=args.monitoring_table_suffix,

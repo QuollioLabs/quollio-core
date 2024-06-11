@@ -31,7 +31,7 @@ To see available commands and options, please run the following command. (ex: Sn
 コマンドやオプションの詳細については、下記のコマンドを実行してください。(例: Snowflake)
 
 ```
-$ python3 -m quollio_core.snowflake -h
+$ python -m quollio_core.snowflake -h
 ```
 
 Then run commands with the options provided.
