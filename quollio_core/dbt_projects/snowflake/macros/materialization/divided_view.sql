@@ -1,52 +1,74 @@
 {%- materialization divided_view, default %}
 {%- set identifier = model['alias'] %}
 {%- set target_relations = [] %}
-{%- set chunk = config.get('chunk') %}
 {%- set grant_config = config.get('grants') %}
 
 {{ run_hooks(pre_hooks, inside_transaction=False) }}
 -- `BEGIN` happens here:
 {{ run_hooks(pre_hooks, inside_transaction=True) }}
 
--- fetch records
-{%- set query_quollio_stats_profiling_columns -%}
-SELECT * FROM {{  ref('quollio_stats_profiling_columns')  }} WHERE NOT startswith(table_name, 'QUOLLIO_')
+-- fetch target_tables
+{%- set query_stats_target_tables -%}
+    SELECT
+      TABLE_CATALOG
+      , TABLE_SCHEMA
+      , TABLE_NAME
+      , OBJECT_AGG(COLUMN_NAME, IS_CALCULABLE) AS COLUMNS_OBJ
+    FROM
+      {{ ref('quollio_stats_profiling_columns') }}
+    WHERE NOT startswith(table_name, 'QUOLLIO_')
+    GROUP BY
+      TABLE_CATALOG
+      , TABLE_SCHEMA
+      , TABLE_NAME
 {%- endset -%}
-{%- set results = run_query(query_quollio_stats_profiling_columns) -%}
+{%- set results = run_query(query_stats_target_tables) -%}
 {%- if execute -%}
-{%- set records = results.rows -%}
+{%- set stats_target_tables = results.rows -%}
 {%- else -%}
-{%- set records = [] -%}
+{%- set stats_target_tables = [] -%}
 {%- endif -%}
 
--- build sql
-{%- for i in range(0, records|length, chunk) -%}
-  {%- set build_sql %}
-  {%- for record in records[i: i+chunk] -%}
-    {%- if not loop.first %}UNION{% endif %}
+-- skip creating views if the target profiling columns don't exist.
+{%- if stats_target_tables | length == 0 -%}
+  {% call statement("main") %}
+    {{ log("No records found. Just execute select stmt for skipping call statement.", info=True) }}
+    select null
+  {% endcall %}
+  {%- set full_refresh_mode = (should_full_refresh()) -%}
+  {%- set should_revoke = should_revoke(target_relation, full_refresh_mode) %}
+{%- endif -%}
 
+-- create view for each table
+{%- for stats_target_table in stats_target_tables -%}
+  -- build sql for column value aggregation.
+  {%- set sql_for_column_stats %}
+  {% set columns_json = fromjson(stats_target_table[3]) %}
+  {%- for col_name, is_calclable in columns_json.items() -%}
+    {%- if not loop.first %}UNION{% endif %}
     SELECT
       DISTINCT
-      '{{record[0]}}' as db_name
-      , '{{record[1]}}' as schema_name
-      , '{{record[2]}}' as table_name
-      , '{{record[3]}}' as column_name
-      , {% if record[5] == true %}CAST(max("{{record[3]}}") AS STRING){% else %}null{% endif %} AS max_value
-      , {% if record[5] == true %}CAST(min("{{record[3]}}") AS STRING){% else %}null{% endif %} AS min_value
-      , COUNT_IF("{{record[3]}}" IS NULL) AS null_count
-      , APPROX_COUNT_DISTINCT("{{record[3]}}") AS cardinality
-      , {% if record[5] == true %}avg("{{record[3]}}"){% else %}null{% endif %} AS avg_value
-      , {% if record[5] == true %}median("{{record[3]}}"){% else %}null{% endif %} AS median_value
-      , {% if record[5] == true %}approx_top_k("{{record[3]}}")[0][0]{% else %}null{% endif %} AS mode_value
-      , {% if record[5] == true %}stddev("{{record[3]}}"){% else %}null{% endif %} AS stddev_value
-    FROM "{{record[0]}}"."{{record[1]}}"."{{record[2]}}" {{ var("sample_method") }}
+      '{{stats_target_table[0]}}' as db_name
+      , '{{stats_target_table[1]}}' as schema_name
+      , '{{stats_target_table[2]}}' as table_name
+      , '{{col_name}}' as column_name
+      , {% if is_calclable == True %}CAST(MAX("{{col_name}}") AS STRING){% else %}NULL{% endif %} AS max_value
+      , {% if is_calclable == True %}CAST(MIN("{{col_name}}") AS STRING){% else %}NULL{% endif %} AS min_value
+      , COUNT_IF("{{col_name}}" IS NULL) AS null_count
+      , APPROX_COUNT_DISTINCT("{{col_name}}") AS cardinality
+      , {% if is_calclable == True %}AVG("{{col_name}}"){% else %}NULL{% endif %} AS avg_value
+      , {% if is_calclable == True %}MEDIAN("{{col_name}}"){% else %}NULL{% endif %} AS median_value
+      , {% if is_calclable == True %}APPROX_TOP_K("{{col_name}}")[0][0]{% else %}NULL{% endif %} AS mode_value
+      , {% if is_calclable == True %}STDDEV("{{col_name}}"){% else %}NULL{% endif %} AS stddev_value
+    FROM "{{stats_target_table[0]}}"."{{stats_target_table[1]}}"."{{stats_target_table[2]}}" {{ var("sample_method") }}
   {% endfor -%}
   {%- endset %}
+
   -- create a view with a index as suffix
-  {%- set target_identifier = "%s_%d"|format(model['name'], loop.index) %}
-  {%- set target_relation = api.Relation.create(identifier=target_identifier, schema=schema, database=database, type='view') %}
+  {%- set stats_view_identifier = "%s_%s_%s_%s"|format(model['name'], stats_target_table[0], stats_target_table[1], stats_target_table[2]) %}
+  {%- set target_relation = api.Relation.create(identifier=stats_view_identifier, schema=schema, database=database, type='view') %}
   {% call statement("main") %}
-    {{ get_create_view_as_sql(target_relation, build_sql) }}
+    {{ get_create_view_as_sql(target_relation, sql_for_column_stats) }}
   {% endcall %}
   {%- set full_refresh_mode = (should_full_refresh()) -%}
   {%- set should_revoke = should_revoke(target_relation, full_refresh_mode) %}

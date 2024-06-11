@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Union
 
 sys.path.insert(0, os.path.abspath("../.."))
 
-from quollio_core.helper.core import new_global_id, setup_dbt_profile
+from quollio_core.helper.core import new_global_id, setup_dbt_profile, trim_prefix
 from quollio_core.repository.redshift import RedshiftConnectionConfig
 from quollio_core.repository.snowflake import SnowflakeConnectionConfig
 
@@ -147,6 +147,32 @@ quollio_intelligence_snowflake:
             with open(profile_file, "r") as f:
                 content = f.read()
                 self.assertEqual(content, test_case["expect"])
+
+    def test_trim_prefix(self) -> None:
+        test_cases: List[Dict[str, Union[str, Dict[str, str]]]] = [
+            {
+                "input": {
+                    "s": "abc.com",
+                    "prefix": "https://",
+                },
+                "expect": "abc.com",
+            },
+            {
+                "input": {
+                    "s": "https://abc.com",
+                    "prefix": "https://",
+                },
+                "expect": "abc.com",
+            },
+        ]
+
+        for test_case in test_cases:
+            input_value = test_case["input"]
+            res = trim_prefix(
+                s=input_value["s"],
+                prefix=input_value["prefix"],
+            )
+            self.assertEqual(res, test_case["expect"])
 
 
 if __name__ == "__main__":

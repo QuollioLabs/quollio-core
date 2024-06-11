@@ -1,7 +1,7 @@
 version: 2
 
 model:
-  - name: quollio_lineage_column_level
+  - name: quollio_lineage_table_level
     columns: 
       - name: UPSTREAM_TABLES
         description: 'String column with all upstream tables in JSON format'
