@@ -18,4 +18,4 @@ clean-targets:
 models:
   +dbt-osmosis: "{model}.yml"
   +grants:
-    select: ["{{ var('query_user') }}"]
+    select: ["\"{{ var('query_user') }}\""]
