@@ -54,7 +54,6 @@ class SQLLineage:
         dest_db: str = None,
         dest_schema: str = None,
     ) -> Tuple[Set[Table], Table]:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         try:
             statement: sqlglot.Expression = sqlglot.parse_one(sql=sql, error_level=sqlglot.ErrorLevel.RAISE)
         except ParseError as e:

@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from databricks.sdk.core import Config, HeaderFactory, oauth_service_principal
 from databricks.sql.client import Connection, connect
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -47,8 +47,8 @@ class DatabricksQueryExecutor:
                 cur.execute(query)
                 result: List[Dict[str, str]] = cur.fetchall()
             except Exception as e:
-                logging.error(query, exc_info=True)
-                logging.error("databricks get_query_results failed. %s", e)
+                logger.error(query, exc_info=True)
+                logger.error("databricks get_query_results failed. %s", e)
                 raise
 
             for row in result:

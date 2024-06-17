@@ -25,7 +25,6 @@ class QDCExternalAPIClient:
         Tried to find a package for oauth0 client credentials flow,
         but any of them contains bugs or lacks of features to handle the token refresh when it's expired
         """
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         url = f"{self.base_url}/oauth2/token"
         creds = f"{self.client_id}:{self.client_secret}"
         encoded_creds = base64.b64encode(creds.encode()).decode()
@@ -65,7 +64,6 @@ class QDCExternalAPIClient:
         return session
 
     def update_stats_by_id(self, global_id: str, payload: Dict[str, List[str]]) -> int:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         self._refresh_token_if_expired()
         headers = {"content-type": "application/json", "authorization": f"Bearer {self.auth_token}"}
         endpoint = f"{self.base_url}/v2/assets/{global_id}/stats"
@@ -85,7 +83,6 @@ class QDCExternalAPIClient:
             return res.status_code
 
     def update_lineage_by_id(self, global_id: str, payload: Dict[str, List[str]]) -> int:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         self._refresh_token_if_expired()
         headers = {"content-type": "application/json", "authorization": f"Bearer {self.auth_token}"}
         endpoint = f"{self.base_url}/v2/lineage/{global_id}"

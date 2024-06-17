@@ -28,6 +28,12 @@ class SnowflakeQueryExecutor:
     def __init__(self, config: SnowflakeConnectionConfig) -> None:
         self.conn = self.__initialize(config)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.conn.close()
+
     def __initialize(self, config: SnowflakeConnectionConfig) -> SnowflakeConnection:
         conn: SnowflakeConnection = connect(
             user=config.account_user,
@@ -41,7 +47,6 @@ class SnowflakeQueryExecutor:
         return conn
 
     def get_query_results(self, query: str) -> List[Dict[str, str]]:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         with self.conn.cursor(DictCursor) as cur:
             try:
                 cur.execute(query)

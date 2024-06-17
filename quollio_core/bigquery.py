@@ -3,6 +3,7 @@ import json
 import logging
 
 from quollio_core.helper.env_default import env_default
+from quollio_core.helper.log import set_log_level
 from quollio_core.profilers.bigquery import bigquery_table_lineage
 from quollio_core.repository import qdc
 from quollio_core.repository.bigquery import get_credentials, get_org_id
@@ -88,14 +89,22 @@ if __name__ == "__main__":
         help="GCP regions where the data is located. Multiple regions can be provided separated by space.",
         nargs="+",
     )
+    parser.add_argument(
+        "--log_level",
+        type=str,
+        choices=["debug", "info", "warn", "error", "none"],
+        action=env_default("LOG_LEVEL"),
+        required=False,
+        help="The log level for dbt commands. Default value is info",
+    )
 
     args = parser.parse_args()
+    set_log_level(level=args.log_level)
 
     if len(args.commands) == 0:
         raise ValueError("No command is provided")
 
     if "load_lineage" in args.commands:
-
         qdc_client = qdc.QDCExternalAPIClient(
             base_url=args.api_url, client_id=args.client_id, client_secret=args.client_secret
         )

@@ -4,6 +4,7 @@ import os
 
 from quollio_core.helper.core import setup_dbt_profile
 from quollio_core.helper.env_default import env_default
+from quollio_core.helper.log import set_log_level
 from quollio_core.profilers.snowflake import (
     snowflake_column_to_column_lineage,
     snowflake_table_level_sqllineage,
@@ -21,7 +22,6 @@ def build_view(
     target_tables: str = "",
     log_level: str = "info",
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Build profiler views using dbt")
     # set parameters
@@ -74,9 +74,8 @@ def load_lineage(
     tenant_id: str,
     enable_column_lineage: bool = False,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
     logger.info("Generate Snowflake table to table lineage.")
+
     snowflake_table_to_table_lineage(
         conn=conn,
         qdc_client=qdc_client,
@@ -105,7 +104,6 @@ def load_stats(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Generate Snowflake stats.")
     snowflake_table_stats(
@@ -124,7 +122,6 @@ def load_sqllineage(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Generate Snowflake sqllineage.")
     snowflake_table_level_sqllineage(
@@ -279,6 +276,8 @@ if __name__ == "__main__":
         help="Whether to ingest column lineage into QDIC or not. Default value is False",
     )
     args = parser.parse_args()
+    set_log_level(level=args.log_level)
+
     conn = snowflake.SnowflakeConnectionConfig(
         account_id=args.account_id,
         account_user=args.user,

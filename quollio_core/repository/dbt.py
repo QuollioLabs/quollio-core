@@ -11,7 +11,6 @@ class DBTClient:
         self.dbt = dbtRunner()
 
     def invoke(self, cmd: str, project_dir: str, profile_dir: str, options: List[str] = None) -> dbtRunnerResult:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         req = [cmd, "--project-dir", project_dir, "--profiles-dir", profile_dir]
         if options is not None:
             req.extend(options)
