@@ -67,7 +67,6 @@ class RedshiftQueryExecutor:
         return conn
 
     def get_query_results(self, query: str) -> Tuple[List[str]]:
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
         with self.conn.cursor() as cur:
             try:
                 cur.execute(query)

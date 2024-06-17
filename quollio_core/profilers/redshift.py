@@ -14,7 +14,6 @@ def redshift_table_level_lineage(
     tenant_id: str,
     dbt_table_name: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
     with redshift.RedshiftQueryExecutor(config=conn) as redshift_executor:
         results = redshift_executor.get_query_results(
             query="""
@@ -55,22 +54,7 @@ def redshift_table_level_lineage(
     return
 
 
-def _get_target_tables_query(db: str, schema: str) -> str:
-    query = """
-        SELECT
-            DISTINCT
-            database_name
-            , schema_name
-            , table_name
-        FROM
-            {db}.{schema}.quollio_stats_profiling_columns
-        """.format(
-        db=db, schema=schema
-    )
-    return query
-
-
-def _get_stats_tables_query(db: str, schema: str) -> str:
+def _gen_get_stats_views_query(db: str, schema: str) -> str:
     query = """
         SELECT
             DISTINCT
@@ -93,70 +77,54 @@ def redshift_table_stats(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     with redshift.RedshiftQueryExecutor(config=conn) as redshift_executor:
-        req_count = 0
-        target_query = _get_target_tables_query(
+        stats_query = _gen_get_stats_views_query(
             db=conn.database,
             schema=conn.schema,
         )
-        target_assets = redshift_executor.get_query_results(query=target_query)
+        stats_views = redshift_executor.get_query_results(query=stats_query)
 
-        stats_query = _get_stats_tables_query(
-            db=conn.database,
-            schema=conn.schema,
-        )
-        stats_columns = redshift_executor.get_query_results(query=stats_query)
-        for target_asset in target_assets:
-            for stats_column in stats_columns:
-                stats_query = """
-                SELECT
-                    db_name
-                    , schema_name
-                    , table_name
-                    , column_name
-                    , max_value
-                    , min_value
-                    , null_count
-                    , cardinality
-                    , avg_value
-                    , median_value
-                    , mode_value
-                    , stddev_value
-                FROM
-                    {db}.{schema}.{table}
-                WHERE
-                    db_name = '{target_db}'
-                    and schema_name = '{target_schema}'
-                    and table_name = '{target_table}'
-                """.format(
-                    db=stats_column[0],
-                    schema=stats_column[1],
-                    table=stats_column[2],
-                    target_db=target_asset[0],
-                    target_schema=target_asset[1],
-                    target_table=target_asset[2],
-                )
-                stats_result = redshift_executor.get_query_results(query=stats_query)
-                payloads = gen_table_stats_payload_from_tuple(
-                    tenant_id=tenant_id, endpoint=conn.host, stats=stats_result
-                )
-                for payload in payloads:
-                    logger.info(
-                        "Generating table stats. asset: {db} -> {schema} -> {table} -> {column}".format(
-                            db=payload.db,
-                            schema=payload.schema,
-                            table=payload.table,
-                            column=payload.column,
-                        )
+        req_count = 0
+        for stats_view in stats_views:
+            stats_query = """
+            SELECT
+                db_name
+                , schema_name
+                , table_name
+                , column_name
+                , max_value
+                , min_value
+                , null_count
+                , cardinality
+                , avg_value
+                , median_value
+                , mode_value
+                , stddev_value
+            FROM
+                {db}.{schema}.{table}
+            """.format(
+                db=stats_view[0],
+                schema=stats_view[1],
+                table=stats_view[2],
+            )
+            stats_result = redshift_executor.get_query_results(query=stats_query)
+            payloads = gen_table_stats_payload_from_tuple(tenant_id=tenant_id, endpoint=conn.host, stats=stats_result)
+            for payload in payloads:
+                logger.info(
+                    "Generating table stats. asset: {db} -> {schema} -> {table} -> {column}".format(
+                        db=payload.db,
+                        schema=payload.schema,
+                        table=payload.table,
+                        column=payload.column,
                     )
-                    status_code = qdc_client.update_stats_by_id(
-                        global_id=payload.global_id,
-                        payload=payload.body.get_column_stats(),
-                    )
-                    if status_code == 200:
-                        req_count += 1
+                )
+                status_code = qdc_client.update_stats_by_id(
+                    global_id=payload.global_id,
+                    payload=payload.body.get_column_stats(),
+                )
+                if status_code == 200:
+                    req_count += 1
     logger.info(f"Generating table stats is finished. {req_count} stats are ingested.")
     return
 
@@ -166,7 +134,6 @@ def redshift_table_level_sqllineage(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
     redshift_connector = redshift.RedshiftQueryExecutor(conn)
     results = redshift_connector.get_query_results(
         query="""

@@ -14,7 +14,6 @@ from quollio_core.repository.bigquery import (
 
 
 class TestBigQueryClients(unittest.TestCase):
-
     def test_get_entitiy_reference(self):
         # Test if get_entitiy_reference returns an EntityReference instance
         result = get_entitiy_reference()

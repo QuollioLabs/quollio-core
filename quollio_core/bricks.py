@@ -4,6 +4,7 @@ import os
 
 from quollio_core.helper.core import setup_dbt_profile, trim_prefix
 from quollio_core.helper.env_default import env_default
+from quollio_core.helper.log import set_log_level
 from quollio_core.profilers.databricks import (
     databricks_column_level_lineage,
     databricks_column_stats,
@@ -20,7 +21,6 @@ def build_view(
     target_tables: str = "",
     log_level: str = "info",
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Build profiler views using dbt")
     # set parameters
@@ -64,7 +64,6 @@ def load_lineage(
     tenant_id: str,
     enable_column_lineage: bool = False,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Generate Databricks table to table lineage.")
     databricks_table_level_lineage(
@@ -99,7 +98,6 @@ def load_column_stats(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Generate Databricks column stats.")
     databricks_column_stats(
@@ -243,6 +241,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    set_log_level(level=args.log_level)
 
     conn = db.DatabricksConnectionConfig(
         # MEMO: Metadata agent allows the string 'https://' as a host name but is not allowed by intelligence agent.

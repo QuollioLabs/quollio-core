@@ -19,7 +19,6 @@ def databricks_table_level_lineage(
     tenant_id: str,
     dbt_table_name: str = "quollio_lineage_table_level",
 ) -> None:
-    logging.basicConfig(level=logging.info, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
     with databricks.DatabricksQueryExecutor(config=conn) as databricks_executor:
         results = databricks_executor.get_query_results(
             query=f"""
@@ -61,7 +60,6 @@ def databricks_column_level_lineage(
     tenant_id: str,
     dbt_table_name: str = "quollio_lineage_column_level",
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
     with databricks.DatabricksQueryExecutor(config=conn) as databricks_executor:
         results = databricks_executor.get_query_results(
             query=f"""

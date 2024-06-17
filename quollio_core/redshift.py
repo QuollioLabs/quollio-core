@@ -4,6 +4,7 @@ import os
 
 from quollio_core.helper.core import setup_dbt_profile
 from quollio_core.helper.env_default import env_default
+from quollio_core.helper.log import set_log_level
 from quollio_core.profilers.redshift import (
     redshift_table_level_lineage,
     redshift_table_level_sqllineage,
@@ -20,8 +21,6 @@ def build_view(
     target_tables: str = "",
     log_level: str = "info",
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
-
     logger.info("Build profiler views using dbt")
     # set parameters
     dbt_client = dbt.DBTClient()
@@ -74,7 +73,6 @@ def load_lineage(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
     logger.info("Generate redshift table to table lineage.")
     redshift_table_level_lineage(
         conn=conn,
@@ -101,7 +99,6 @@ def load_stats(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Generate redshift stats.")
     redshift_table_stats(
@@ -119,7 +116,6 @@ def load_sqllineage(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 
     logger.info("Generate Redshift sqllineage.")
     redshift_table_level_sqllineage(
@@ -266,6 +262,8 @@ if __name__ == "__main__":
         help="The client secrete that is created on Quollio console to let clients access Quollio External API",
     )
     args = parser.parse_args()
+    set_log_level(level=args.log_level)
+
     conn = redshift.RedshiftConnectionConfig(
         host=args.host,
         build_user=args.build_user,
