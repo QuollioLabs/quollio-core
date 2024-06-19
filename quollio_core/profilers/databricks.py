@@ -138,42 +138,47 @@ def _get_column_stats(
             raise ValueError(f"Invalid table name: {table['table_fqdn']}")
         with databricks.DatabricksQueryExecutor(config=conn) as databricks_executor:
             query = """
-                SELECT
-                    "{monitored_table_catalog}" as DB_NAME,
-                    "{monitored_table_schema}" as SCHEMA_NAME,
-                    "{monitored_table_name}" as TABLE_NAME,
-                    t.COLUMN_NAME,
-                    t.DATA_TYPE,
-                    t.distinct_count as CARDINALITY,
-                    t.MAX as MAX_VALUE,
-                    t.MIN as MIN_VALUE,
-                    t.AVG as AVG_VALUE,
-                    t.MEDIAN as MEDIAN_VALUE,
-                    t.STDDEV as STDDEV_VALUE,
-                    t.NUM_NULLS as NULL_COUNT,
-                    t.frequent_items[0].item AS MODE_VALUE,
-                    MAX(t.window) AS LATEST
-                FROM
-                    {monitoring_table} t
-                WHERE
-                    t.column_name not in (':table')
-                GROUP BY
-                    t.COLUMN_NAME,
-                    t.DATA_TYPE,
-                    t.distinct_count,
-                    t.MAX,
-                    t.MIN,
-                    t.AVG,
-                    t.MEDIAN,
-                    t.STDDEV,
-                    t.NUM_NULLS,
-                    t.frequent_items
+                    WITH profile_record_history AS (
+                        SELECT
+                            COLUMN_NAME
+                            , distinct_count as CARDINALITY
+                            , MAX as MAX_VALUE
+                            , MIN as MIN_VALUE
+                            , AVG as AVG_VALUE
+                            , MEDIAN as MEDIAN_VALUE
+                            , STDDEV as STDDEV_VALUE
+                            , NUM_NULLS as NULL_COUNT
+                            , frequent_items[0].item AS MODE_VALUE
+                            , row_number() over(partition by column_name order by window desc) rownum
+                        FROM
+                            {monitoring_table}
+                        WHERE
+                            column_name not in (':table')
+                    )
+                    SELECT
+                        "{monitored_table_catalog}" as DB_NAME
+                        , "{monitored_table_schema}" as SCHEMA_NAME
+                        , "{monitored_table_name}" as TABLE_NAME
+                        , COLUMN_NAME
+                        , CARDINALITY
+                        , MAX_VALUE
+                        , MIN_VALUE
+                        , AVG_VALUE
+                        , MEDIAN_VALUE
+                        , STDDEV_VALUE
+                        , NULL_COUNT
+                        , MODE_VALUE
+                    FROM
+                        profile_record_history
+                    WHERE
+                        rownum = 1
                 """.format(
                 monitoring_table=table["table_fqdn"],
                 monitored_table_catalog=monitored_table[0],
                 monitored_table_schema=monitored_table[1],
                 monitored_table_name=monitored_table[2],
             )
+            logger.debug(f"The following sql will be fetched to retrieve stats values. {query}")
             stats.append(databricks_executor.get_query_results(query))
     return stats
 
