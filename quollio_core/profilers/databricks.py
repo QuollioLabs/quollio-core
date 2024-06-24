@@ -148,7 +148,7 @@ def _get_column_stats(
                             , MEDIAN as MEDIAN_VALUE
                             , STDDEV as STDDEV_VALUE
                             , NUM_NULLS as NULL_COUNT
-                            , frequent_items[0].item AS MODE_VALUE
+                            , get(frequent_items, 0).item AS MODE_VALUE
                             , row_number() over(partition by column_name order by window desc) rownum
                         FROM
                             {monitoring_table}
@@ -192,6 +192,7 @@ def databricks_column_stats(
 ) -> None:
     table_stats = _get_column_stats(conn, monitoring_table_suffix)
     for table in table_stats:
+        logger.debug("Table %s will be aggregated.", table)
         stats = gen_table_stats_payload(tenant_id=tenant_id, endpoint=endpoint, stats=table)
         for stat in stats:
             status_code = qdc_client.update_stats_by_id(
