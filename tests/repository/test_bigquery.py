@@ -1,43 +1,103 @@
-import json
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import Mock, patch
 
+from google.cloud.datacatalog_lineage_v1 import SearchLinksRequest
 from google.oauth2.service_account import Credentials
 
-from quollio_core.repository.bigquery import (
-    EntityReference,
-    get_credentials,
-    get_entitiy_reference,
-    get_org_id,
-    get_search_request,
-)
+from quollio_core.repository.bigquery import BigQueryClient, GCPLineageClient, get_credentials, get_org_id
 
 
-class TestBigQueryClients(unittest.TestCase):
-    def test_get_entitiy_reference(self):
-        # Test if get_entitiy_reference returns an EntityReference instance
-        result = get_entitiy_reference()
-        self.assertIsInstance(result, EntityReference)
+class TestBigQueryClient(unittest.TestCase):
 
-    def test_get_search_request(self):
-        # Mocking EntityReference
-        downstream_table = get_entitiy_reference()
-        downstream_table.fully_qualified_name = "bigquery:qdc123.test_dataset.test_table"
-        project_id = "test_project"
-        region = "asia-northeast1"
+    @patch("quollio_core.repository.bigquery.Client")
+    def setUp(self, MockClient):
+        self.credentials = Mock(spec=Credentials)
+        self.project_id = "test-project"
+        self.mock_bq_client = MockClient.return_value
+        self.mock_bq_client.project = self.project_id
+        self.bq_client = BigQueryClient(credentials=self.credentials, project_id=self.project_id)
 
-        # Expected request
-        expected_request = get_search_request(downstream_table=downstream_table, project_id=project_id, region=region)
+    def test_list_dataset_ids(self):
+        mock_dataset = Mock()
+        mock_dataset.dataset_id = "test_dataset"
+        self.mock_bq_client.list_datasets.return_value = [mock_dataset]
 
-        # Test if get_search_request returns the correct SearchLinksRequest
-        result = get_search_request(downstream_table, project_id, region)
-        self.assertEqual(result.target, expected_request.target)
-        self.assertEqual(result.parent, expected_request.parent)
+        dataset_ids = self.bq_client.list_dataset_ids()
 
-    @patch("quollio_core.repository.bigquery.Credentials.from_service_account_info")
-    def test_get_credentials(self, mock_from_service_account_info):
-        credential_json = """
-        {
+        self.assertEqual(dataset_ids, ["test_dataset"])
+        self.mock_bq_client.list_datasets.assert_called_once()
+
+    def test_list_tables(self):
+        mock_table = Mock()
+        mock_table.table_id = "test_table"
+        mock_table.table_type = "TABLE"
+        mock_table.project = self.project_id
+        mock_table.dataset_id = "test_dataset"
+        self.mock_bq_client.list_tables.return_value = [mock_table]
+
+        tables = self.bq_client.list_tables("test_dataset")
+
+        expected_result = [
+            {"table_id": "test_table", "table_type": "TABLE", "project": self.project_id, "dataset_id": "test_dataset"}
+        ]
+        self.assertEqual(tables, expected_result)
+        self.mock_bq_client.list_tables.assert_called_once_with("test_dataset")
+
+    def test_get_columns(self):
+        mock_field = Mock()
+        mock_field.name = "column1"
+        mock_field.field_type = "STRING"
+        mock_table = Mock()
+        mock_table.schema = [mock_field]
+        self.mock_bq_client.get_table.return_value = mock_table
+
+        columns = self.bq_client.get_columns("test_table", "test_dataset")
+
+        expected_result = [{"name": "column1", "type": "STRING"}]
+        self.assertEqual(columns, expected_result)
+        self.mock_bq_client.get_table.assert_called_once_with(f"{self.project_id}.test_dataset.test_table")
+
+    def test_get_all_columns(self):
+        self.bq_client.list_dataset_ids = Mock(return_value=["test_dataset"])
+        self.bq_client.list_tables = Mock(return_value=[{"table_id": "test_table", "table_type": "TABLE"}])
+        self.bq_client.get_columns = Mock(return_value=[{"name": "column1", "type": "STRING"}])
+
+        all_columns = self.bq_client.get_all_columns()
+
+        expected_result = {
+            "test_dataset": {"test_table": {"columns": [{"name": "column1", "type": "STRING"}], "table_type": "TABLE"}}
+        }
+        self.assertEqual(all_columns, expected_result)
+        self.bq_client.list_dataset_ids.assert_called_once()
+        self.bq_client.list_tables.assert_called_once_with("test_dataset")
+        self.bq_client.get_columns.assert_called_once_with("test_table", "test_dataset")
+
+
+class TestGCPLineageClient(unittest.TestCase):
+
+    @patch("quollio_core.repository.bigquery.LineageClient")
+    def setUp(self, MockLineageClient):
+        self.credentials = Mock(spec=Credentials)
+        self.mock_lineage_client = MockLineageClient.return_value
+        self.lineage_client = GCPLineageClient(credentials=self.credentials)
+
+    def test_get_links(self):
+        mock_response = Mock()
+        mock_response.links = ["link1", "link2"]
+        self.mock_lineage_client.search_links.return_value = mock_response
+        request = Mock(spec=SearchLinksRequest)
+
+        links = self.lineage_client.get_links(request)
+
+        self.assertEqual(links, ["link1", "link2"])
+        self.mock_lineage_client.search_links.assert_called_once_with(request)
+
+
+class TestUtilityFunctions(unittest.TestCase):
+
+    @patch("quollio_core.repository.bigquery.Credentials")
+    def test_get_credentials(self, MockCredentials):
+        mock_credentials_json = {
             "type": "service_account",
             "project_id": "asfasfafas",
             "private_key_id": "asfasfafasf",
@@ -48,62 +108,31 @@ class TestBigQueryClients(unittest.TestCase):
             "token_uri": "https://oauth2.googleapis.com/token",
             "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
             "client_x509_cert_url": "https://www.googleapis.com/robot/v1/asda/x509/a@da.iam.gserviceaccount.com",
-            "universe_domain": "googleapis.com"
+            "universe_domain": "googleapis.com",
         }
-        """
+        MockCredentials.from_service_account_info.return_value = "mocked_credentials"
 
-        credentials_dict = json.loads(credential_json)
+        credentials = get_credentials(mock_credentials_json)
 
-        # Mock the return value of from_service_account_info
-        mock_credentials = MagicMock(spec=Credentials)
-        mock_from_service_account_info.return_value = mock_credentials
-
-        # Call the function
-        credential = get_credentials(credentials_dict)
-
-        # Verify the function calls
-        mock_from_service_account_info.assert_called_once_with(credentials_dict)
-        self.assertIsInstance(credential, Credentials)
+        self.assertEqual(credentials, "mocked_credentials")
+        MockCredentials.from_service_account_info.assert_called_once_with(mock_credentials_json)
 
     @patch("quollio_core.repository.bigquery.build")
     @patch("quollio_core.repository.bigquery.get_credentials")
     def test_get_org_id(self, mock_get_credentials, mock_build):
-        # Mocking the Google API client build function
-        mock_service = MagicMock()
-        mock_projects = mock_service.projects.return_value
-        mock_projects.get.return_value.execute.return_value = {"parent": {"id": "1234567890"}}
-        mock_build.return_value = mock_service
-
-        # Mock the get_credentials function
-        mock_credentials = MagicMock(spec=Credentials)
+        mock_credentials = Mock(spec=Credentials)
         mock_get_credentials.return_value = mock_credentials
+        mock_crm_service = Mock()
+        mock_build.return_value = mock_crm_service
+        mock_crm_service.projects.return_value.get.return_value.execute.return_value = {"parent": {"id": "test_org_id"}}
+        mock_credentials_json = {"project_id": "test_project"}
 
-        # Create a mock credentials JSON
-        credential_json = """
-        {
-            "type": "service_account",
-            "project_id": "test_project",
-            "private_key_id": "asfasfafasf",
-            "private_key": "-----BEGIN PRIVATE KEY-----\\nlklklkl----END PRIVATE KEY-----\\n",
-            "client_email": "testt@test.iam.gserviceaccount.com",
-            "client_id": "33333",
-            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-            "token_uri": "https://oauth2.googleapis.com/token",
-            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": "https://www.googleapis.com/robot/v1/asda/x509/a@da.iam.gserviceaccount.com",
-            "universe_domain": "googleapis.com"
-        }
-        """
+        org_id = get_org_id(mock_credentials_json)
 
-        credentials_dict = json.loads(credential_json)
-        # Call the function with the mocked service
-        org_id = get_org_id(credentials_dict)
-
-        # Assertions
-        mock_get_credentials.assert_called_once_with(credentials_dict)
+        self.assertEqual(org_id, "test_org_id")
+        mock_get_credentials.assert_called_once_with(mock_credentials_json)
         mock_build.assert_called_once_with("cloudresourcemanager", "v1", credentials=mock_credentials)
-        mock_projects.get.assert_called_once_with(projectId="test_project")
-        self.assertEqual(org_id, "1234567890")
+        mock_crm_service.projects.return_value.get.return_value.execute.assert_called_once_with()
 
 
 if __name__ == "__main__":

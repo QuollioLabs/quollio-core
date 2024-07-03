@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 from quollio_core.profilers.lineage import (
     gen_column_lineage_payload,
@@ -6,7 +7,7 @@ from quollio_core.profilers.lineage import (
     parse_snowflake_results,
 )
 from quollio_core.profilers.sqllineage import SQLLineage
-from quollio_core.profilers.stats import gen_table_stats_payload
+from quollio_core.profilers.stats import gen_table_stats_payload, get_is_target_stats_items, render_sql_for_stats
 from quollio_core.repository import qdc, snowflake
 
 logger = logging.getLogger(__name__)
@@ -154,6 +155,7 @@ def snowflake_table_stats(
     conn: snowflake.SnowflakeConnectionConfig,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
+    stats_items: List[str],
 ) -> None:
     with snowflake.SnowflakeQueryExecutor(conn) as sf_executor:
         stats_query = _gen_get_stats_views_query(
@@ -163,28 +165,12 @@ def snowflake_table_stats(
         stats_views = sf_executor.get_query_results(query=stats_query)
 
         req_count = 0
+        is_aggregate_items = get_is_target_stats_items(stats_items=stats_items)
         for stats_view in stats_views:
-            stats_query = """
-            SELECT
-                db_name
-                , schema_name
-                , table_name
-                , column_name
-                , max_value
-                , min_value
-                , null_count
-                , cardinality
-                , avg_value
-                , median_value
-                , mode_value
-                , stddev_value
-            FROM
-                {db}.{schema}.{table}
-            """.format(
-                db=stats_view["TABLE_CATALOG"],
-                schema=stats_view["TABLE_SCHEMA"],
-                table=stats_view["TABLE_NAME"],
+            table_fqn = "{catalog}.{schema}.{table}".format(
+                catalog=stats_view["TABLE_CATALOG"], schema=stats_view["TABLE_SCHEMA"], table=stats_view["TABLE_NAME"]
             )
+            stats_query = render_sql_for_stats(is_aggregate_items=is_aggregate_items, table_fqn=table_fqn)
             logger.debug(f"The following sql will be fetched to retrieve stats values. {stats_query}")
             stats_result = sf_executor.get_query_results(query=stats_query)
             payloads = gen_table_stats_payload(tenant_id=tenant_id, endpoint=conn.account_id, stats=stats_result)
