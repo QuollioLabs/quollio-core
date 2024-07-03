@@ -11,6 +11,7 @@ from quollio_core.profilers.snowflake import (
     snowflake_table_stats,
     snowflake_table_to_table_lineage,
 )
+from quollio_core.profilers.stats import get_column_stats_items
 from quollio_core.repository import dbt, qdc, snowflake
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,6 @@ def build_view(
     target_tables: str = "",
     log_level: str = "info",
 ) -> None:
-
     logger.info("Build profiler views using dbt")
     # set parameters
     dbt_client = dbt.DBTClient()
@@ -103,13 +103,19 @@ def load_stats(
     conn: snowflake.SnowflakeConnectionConfig,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
+    stats_items: str,
 ) -> None:
-
     logger.info("Generate Snowflake stats.")
+
+    if stats_items is None:
+        raise ValueError("No stats items are not selected. Please specify any value to `stats_items` param.")
+
+    logger.info("The following values will be aggregated. {stats_items}".format(stats_items=stats_items))
     snowflake_table_stats(
         conn=conn,
         qdc_client=qdc_client,
         tenant_id=tenant_id,
+        stats_items=stats_items,
     )
 
     logger.info("Stats data is successfully loaded.")
@@ -122,7 +128,6 @@ def load_sqllineage(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-
     logger.info("Generate Snowflake sqllineage.")
     snowflake_table_level_sqllineage(
         conn=conn,
@@ -275,6 +280,19 @@ if __name__ == "__main__":
         required=False,
         help="Whether to ingest column lineage into QDIC or not. Default value is False",
     )
+
+    stats_items = get_column_stats_items()
+    parser.add_argument(
+        "--target_stats_items",
+        type=str,
+        nargs="*",
+        choices=stats_items,
+        default=stats_items,
+        action=env_default("SNOWFLAKE_STATS_ITEMS"),
+        required=False,
+        help="The items for statistic values.\
+              You can choose the items to be aggregated for stats. All items are selected by default.",
+    )
     args = parser.parse_args()
     set_log_level(level=args.log_level)
 
@@ -321,6 +339,7 @@ if __name__ == "__main__":
             conn=conn,
             qdc_client=qdc_client,
             tenant_id=args.tenant_id,
+            stats_items=args.target_stats_items,
         )
     if "load_sqllineage" in args.commands:
         qdc_client = qdc.QDCExternalAPIClient(

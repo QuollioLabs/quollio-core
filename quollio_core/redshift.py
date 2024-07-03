@@ -10,6 +10,7 @@ from quollio_core.profilers.redshift import (
     redshift_table_level_sqllineage,
     redshift_table_stats,
 )
+from quollio_core.profilers.stats import get_column_stats_items
 from quollio_core.repository import dbt, qdc, redshift
 
 logger = logging.getLogger(__name__)
@@ -98,13 +99,19 @@ def load_stats(
     conn: redshift.RedshiftConnectionConfig,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
+    stats_items: str,
 ) -> None:
-
     logger.info("Generate redshift stats.")
+
+    if stats_items is None:
+        raise ValueError("No stats items are not selected. Please specify any value to `stats_items` param.")
+
+    logger.info("The following values will be aggregated. {stats_items}".format(stats_items=stats_items))
     redshift_table_stats(
         conn=conn,
         qdc_client=qdc_client,
         tenant_id=tenant_id,
+        stats_items=stats_items,
     )
 
     logger.info("Stats data is successfully loaded.")
@@ -116,7 +123,6 @@ def load_sqllineage(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-
     logger.info("Generate Redshift sqllineage.")
     redshift_table_level_sqllineage(
         conn=conn,
@@ -261,6 +267,19 @@ if __name__ == "__main__":
         required=False,
         help="The client secrete that is created on Quollio console to let clients access Quollio External API",
     )
+
+    stats_items = get_column_stats_items()
+    parser.add_argument(
+        "--target_stats_items",
+        type=str,
+        nargs="*",
+        choices=stats_items,
+        default=stats_items,
+        action=env_default("REDSHIFT_STATS_ITEMS"),
+        required=False,
+        help="The items for stats values. \
+              You can choose the items to be aggregated for stats. All items are selected by default.",
+    )
     args = parser.parse_args()
     set_log_level(level=args.log_level)
 
@@ -306,6 +325,7 @@ if __name__ == "__main__":
             conn=conn,
             qdc_client=qdc_client,
             tenant_id=args.tenant_id,
+            stats_items=args.target_stats_items,
         )
     if "load_sqllineage" in args.commands:
         qdc_client = qdc.QDCExternalAPIClient(

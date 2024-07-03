@@ -10,6 +10,7 @@ from quollio_core.profilers.databricks import (
     databricks_column_stats,
     databricks_table_level_lineage,
 )
+from quollio_core.profilers.stats import get_column_stats_items
 from quollio_core.repository import databricks as db
 from quollio_core.repository import dbt, qdc
 
@@ -21,7 +22,6 @@ def build_view(
     target_tables: str = "",
     log_level: str = "info",
 ) -> None:
-
     logger.info("Build profiler views using dbt")
     # set parameters
     dbt_client = dbt.DBTClient()
@@ -64,7 +64,6 @@ def load_lineage(
     tenant_id: str,
     enable_column_lineage: bool = False,
 ) -> None:
-
     logger.info("Generate Databricks table to table lineage.")
     databricks_table_level_lineage(
         conn=conn,
@@ -98,7 +97,6 @@ def load_column_stats(
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
 ) -> None:
-
     logger.info("Generate Databricks column stats.")
     databricks_column_stats(
         conn=conn,
@@ -240,6 +238,19 @@ if __name__ == "__main__":
         help="Whether to ingest column lineage into QDIC or not. Default value is False",
     )
 
+    stats_items = get_column_stats_items()
+    parser.add_argument(
+        "--target_stats_items",
+        type=str,
+        nargs="*",
+        choices=stats_items,
+        default=stats_items,
+        action=env_default("DATABRICKS_STATS_ITEMS"),
+        required=False,
+        help="The items for statistic values.\
+              You can choose the items to be aggregated for stats. All items are selected by default.",
+    )
+
     args = parser.parse_args()
     set_log_level(level=args.log_level)
 
@@ -284,5 +295,6 @@ if __name__ == "__main__":
             endpoint=args.host,
             qdc_client=qdc_client,
             tenant_id=args.tenant_id,
+            stats_items=args.target_stats_items,
             monitoring_table_suffix=args.monitoring_table_suffix,
         )

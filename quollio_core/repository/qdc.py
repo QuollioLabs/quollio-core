@@ -100,3 +100,7 @@ class QDCExternalAPIClient:
             logger.error(f"Error: {re} downstream_global_id: {global_id}.")
         else:
             return res.status_code
+
+
+def initialize_qdc_client(api_url: str, client_id: str, client_secret: str) -> QDCExternalAPIClient:
+    return QDCExternalAPIClient(base_url=api_url, client_id=client_id, client_secret=client_secret)

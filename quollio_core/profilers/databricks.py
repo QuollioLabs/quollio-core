@@ -6,7 +6,7 @@ from quollio_core.profilers.lineage import (
     gen_table_lineage_payload,
     parse_databricks_table_lineage,
 )
-from quollio_core.profilers.stats import gen_table_stats_payload
+from quollio_core.profilers.stats import gen_table_stats_payload, get_is_target_stats_items, render_sql_for_stats
 from quollio_core.repository import databricks, qdc
 
 logger = logging.getLogger(__name__)
@@ -125,59 +125,63 @@ def _get_monitoring_tables(
 
 
 def _get_column_stats(
-    conn: databricks.DatabricksConnectionConfig, monitoring_table_suffix: str = "_profile_metrics"
+    conn: databricks.DatabricksConnectionConfig,
+    stats_items: List[str],
+    monitoring_table_suffix: str = "_profile_metrics",
 ) -> List[Dict[str, str]]:
     tables = _get_monitoring_tables(conn, monitoring_table_suffix)
     if not tables:
         return []
     stats = []
+    is_aggregate_items = get_is_target_stats_items(stats_items=stats_items)
     for table in tables:
         monitored_table = table["table_fqdn"].removesuffix("_profile_metrics")
         monitored_table = monitored_table.split(".")
         if len(monitored_table) != 3:
             raise ValueError(f"Invalid table name: {table['table_fqdn']}")
         with databricks.DatabricksQueryExecutor(config=conn) as databricks_executor:
-            query = """
-                    WITH profile_record_history AS (
-                        SELECT
-                            COLUMN_NAME
-                            , distinct_count as CARDINALITY
-                            , MAX as MAX_VALUE
-                            , MIN as MIN_VALUE
-                            , AVG as AVG_VALUE
-                            , MEDIAN as MEDIAN_VALUE
-                            , STDDEV as STDDEV_VALUE
-                            , NUM_NULLS as NULL_COUNT
-                            , get(frequent_items, 0).item AS MODE_VALUE
-                            , row_number() over(partition by column_name order by window desc) rownum
-                        FROM
-                            {monitoring_table}
-                        WHERE
-                            column_name not in (':table')
-                    )
-                    SELECT
-                        "{monitored_table_catalog}" as DB_NAME
-                        , "{monitored_table_schema}" as SCHEMA_NAME
-                        , "{monitored_table_name}" as TABLE_NAME
-                        , COLUMN_NAME
-                        , CARDINALITY
-                        , MAX_VALUE
-                        , MIN_VALUE
-                        , AVG_VALUE
-                        , MEDIAN_VALUE
-                        , STDDEV_VALUE
-                        , NULL_COUNT
-                        , MODE_VALUE
-                    FROM
-                        profile_record_history
-                    WHERE
-                        rownum = 1
-                """.format(
+            cte = """
+            WITH profile_record_history AS (
+                SELECT
+                    COLUMN_NAME
+                    , distinct_count as cardinality
+                    , MAX as max_value
+                    , MIN as min_value
+                    , AVG as avg_value
+                    , MEDIAN as median_value
+                    , STDDEV as stddev_value
+                    , NUM_NULLS as null_count
+                    , get(frequent_items, 0).item AS mode_value
+                    , row_number() over(partition by column_name order by window desc) rownum
+                FROM
+                    {monitoring_table}
+                WHERE
+                    column_name not in (':table')
+            ), profile_record AS (
+            SELECT
+                "{monitored_table_catalog}" as db_name
+                , "{monitored_table_schema}" as schema_name
+                , "{monitored_table_name}" as table_name
+                , column_name
+                , max_value
+                , min_value
+                , null_count
+                , cardinality
+                , avg_value
+                , median_value
+                , mode_value
+                , stddev_value
+            FROM
+                profile_record_history
+            WHERE
+                rownum = 1
+            )""".format(
                 monitoring_table=table["table_fqdn"],
                 monitored_table_catalog=monitored_table[0],
                 monitored_table_schema=monitored_table[1],
                 monitored_table_name=monitored_table[2],
             )
+            query = render_sql_for_stats(is_aggregate_items=is_aggregate_items, table_fqn="profile_record", cte=cte)
             logger.debug(f"The following sql will be fetched to retrieve stats values. {query}")
             stats.append(databricks_executor.get_query_results(query))
     return stats
@@ -188,9 +192,10 @@ def databricks_column_stats(
     endpoint: str,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
+    stats_items: List[str],
     monitoring_table_suffix: str = "_profile_metrics",
 ) -> None:
-    table_stats = _get_column_stats(conn, monitoring_table_suffix)
+    table_stats = _get_column_stats(conn, stats_items, monitoring_table_suffix)
     for table in table_stats:
         logger.debug("Table %s will be aggregated.", table)
         stats = gen_table_stats_payload(tenant_id=tenant_id, endpoint=endpoint, stats=table)

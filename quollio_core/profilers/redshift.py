@@ -1,8 +1,13 @@
 import logging
+from typing import List
 
 from quollio_core.profilers.lineage import gen_table_lineage_payload, gen_table_lineage_payload_inputs
 from quollio_core.profilers.sqllineage import SQLLineage
-from quollio_core.profilers.stats import gen_table_stats_payload_from_tuple
+from quollio_core.profilers.stats import (
+    gen_table_stats_payload_from_tuple,
+    get_is_target_stats_items,
+    render_sql_for_stats,
+)
 from quollio_core.repository import qdc, redshift
 
 logger = logging.getLogger(__name__)
@@ -76,38 +81,24 @@ def redshift_table_stats(
     conn: redshift.RedshiftConnectionConfig,
     qdc_client: qdc.QDCExternalAPIClient,
     tenant_id: str,
+    stats_items: List[str],
 ) -> None:
-
+    is_aggregate_items = get_is_target_stats_items(stats_items=stats_items)
     with redshift.RedshiftQueryExecutor(config=conn) as redshift_executor:
         stats_query = _gen_get_stats_views_query(
             db=conn.database,
             schema=conn.schema,
         )
         stats_views = redshift_executor.get_query_results(query=stats_query)
+        logger.info("Found %s for table statistics.", len(stats_views))
 
         req_count = 0
         for stats_view in stats_views:
-            stats_query = """
-            SELECT
-                db_name
-                , schema_name
-                , table_name
-                , column_name
-                , max_value
-                , min_value
-                , null_count
-                , cardinality
-                , avg_value
-                , median_value
-                , mode_value
-                , stddev_value
-            FROM
-                {db}.{schema}.{table}
-            """.format(
-                db=stats_view[0],
-                schema=stats_view[1],
-                table=stats_view[2],
+            table_fqn = "{catalog}.{schema}.{table}".format(
+                catalog=stats_view[0], schema=stats_view[1], table=stats_view[2]
             )
+            stats_query = render_sql_for_stats(is_aggregate_items=is_aggregate_items, table_fqn=table_fqn)
+            logger.debug(f"The following sql will be fetched to retrieve stats values. {stats_query}")
             stats_result = redshift_executor.get_query_results(query=stats_query)
             payloads = gen_table_stats_payload_from_tuple(tenant_id=tenant_id, endpoint=conn.host, stats=stats_result)
             for payload in payloads:
