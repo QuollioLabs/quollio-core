@@ -38,7 +38,6 @@ def error_handling_decorator(func):
             logger.debug(f"Completed {func_name} successfully")
             return result
         except Exception as e:
-
             current_frame = inspect.currentframe()
             error_frame = current_frame.f_back
             line_number = error_frame.f_lineno

@@ -16,7 +16,6 @@ def test_function(success: bool):
 
 
 class TestLogUtils(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         # Configure logging

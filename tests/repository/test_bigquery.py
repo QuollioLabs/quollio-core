@@ -8,7 +8,6 @@ from quollio_core.repository.bigquery import BigQueryClient, GCPLineageClient, g
 
 
 class TestBigQueryClient(unittest.TestCase):
-
     @patch("quollio_core.repository.bigquery.Client")
     def setUp(self, MockClient):
         self.credentials = Mock(spec=Credentials)
@@ -74,7 +73,6 @@ class TestBigQueryClient(unittest.TestCase):
 
 
 class TestGCPLineageClient(unittest.TestCase):
-
     @patch("quollio_core.repository.bigquery.LineageClient")
     def setUp(self, MockLineageClient):
         self.credentials = Mock(spec=Credentials)
@@ -94,7 +92,6 @@ class TestGCPLineageClient(unittest.TestCase):
 
 
 class TestUtilityFunctions(unittest.TestCase):
-
     @patch("quollio_core.repository.bigquery.Credentials")
     def test_get_credentials(self, MockCredentials):
         mock_credentials_json = {

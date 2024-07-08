@@ -13,7 +13,6 @@ from quollio_core.profilers.bigquery import (
 
 
 class TestBigQueryProfilers(unittest.TestCase):
-
     @patch("quollio_core.profilers.bigquery.qdc.QDCExternalAPIClient")
     @patch("quollio_core.profilers.bigquery.BigQueryClient")
     @patch("quollio_core.profilers.bigquery.GCPLineageClient")
