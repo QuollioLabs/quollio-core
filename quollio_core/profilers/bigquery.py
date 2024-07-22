@@ -25,16 +25,18 @@ def bigquery_table_lineage(
     all_tables = generate_table_list(bq_client, datasets)
     lineage_links = generate_lineage_links(all_tables, lineage_client, project_id, regions)
     lineage_links = parse_bigquery_table_lineage(lineage_links)
+    logger.debug("The following resources will be ingested. %s", lineage_links)
 
     update_table_lineage_inputs = gen_table_lineage_payload(tenant_id=tenant_id, endpoint=org_id, tables=lineage_links)
 
     req_count = 0
     for update_table_lineage_input in update_table_lineage_inputs:
         logger.info(
-            "Generating table lineage. downstream: %s -> %s -> %s",
+            "Generating table lineage. downstream: %s -> %s -> %s. upstream: %s",
             update_table_lineage_input.downstream_database_name,
             update_table_lineage_input.downstream_schema_name,
             update_table_lineage_input.downstream_table_name,
+            update_table_lineage_input.upstreams.as_dict(),
         )
         status_code = qdc_client.update_lineage_by_id(
             global_id=update_table_lineage_input.downstream_global_id,
