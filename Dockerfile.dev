@@ -22,4 +22,7 @@ RUN set -x \
 RUN set -x \
   && flit install --deps production
 
+# Install dbt module
+RUN git clone https://github.com/dbt-labs/dbt-utils.git -b 1.1.1 /root/deps/dbt-utils
+
 ENTRYPOINT [ "python", "-m" ]

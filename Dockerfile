@@ -21,4 +21,7 @@ ARG LIB_VERSION
 RUN set -x \
   && pip install quollio-core==$LIB_VERSION
 
+# Install dbt module
+RUN git clone https://github.com/dbt-labs/dbt-utils.git -b 1.1.1 /root/deps/dbt-utils
+
 ENTRYPOINT [ "python", "-m" ]

@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import shutil
 
 from quollio_core.helper.core import setup_dbt_profile
 from quollio_core.helper.env_default import env_default
@@ -22,6 +23,7 @@ def build_view(
     stats_sample_method: str,
     target_tables: str = "",
     log_level: str = "info",
+    dbt_macro_source: str = "hub",
 ) -> None:
     logger.info("Build profiler views using dbt")
     # set parameters
@@ -34,6 +36,13 @@ def build_view(
         query_role=conn.account_query_role,
         sample_method=stats_sample_method,
     )
+    new_package_file = f"{project_path}/packages.yml"
+    if dbt_macro_source == "local":
+        shutil.copyfile(f"{project_path}/packages_local.yml", new_package_file)
+        logger.info("Will install dbt macro defined in packages_local.yml")
+    else:
+        shutil.copyfile(f"{project_path}/packages_hub.yml", new_package_file)
+        logger.info("Will install dbt macro defined in packages_hub.yml")
 
     # build views using dbt
     setup_dbt_profile(
@@ -47,7 +56,7 @@ def build_view(
         cmd="deps",
         project_dir=project_path,
         profile_dir=template_path,
-        options=["--no-use-colors", "--log-level", log_level, "--vars", options],
+        options=["--no-use-colors", "--log-level", log_level, "--vars", options, "--source", dbt_macro_source],
     )
     run_options = ["--no-use-colors", "--log-level", log_level, "--vars", options]
     if target_tables is not None:
@@ -252,6 +261,15 @@ if __name__ == "__main__":
         help="The log level for dbt commands. Default value is info",
     )
     parser.add_argument(
+        "--dbt_macro_source",
+        type=str,
+        choices=["hub", "local"],
+        action=env_default("DBT_MACRO_SOURCE"),
+        default="hub",
+        required=False,
+        help="The dbt macro source",
+    )
+    parser.add_argument(
         "--api_url",
         type=str,
         action=env_default("QDC_API_URL"),
@@ -316,6 +334,7 @@ if __name__ == "__main__":
             stats_sample_method=args.sample_method,
             target_tables=args.target_tables,
             log_level=args.log_level,
+            dbt_macro_source=args.dbt_macro_source,
         )
     if "load_lineage" in args.commands:
         qdc_client = qdc.QDCExternalAPIClient(

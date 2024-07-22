@@ -172,4 +172,5 @@ quollio_core/dbt_projects/**/target/
 quollio_core/dbt_projects/**/logs/
 quollio_core/dbt_projects/**/dbt_packages/
 quollio_core/dbt_projects/**/profiles.yml
-
+quollio_core/dbt_projects/**/packages.yml
+quollio_core/dbt_projects/**/package-lock.yml

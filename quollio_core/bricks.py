@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import shutil
 
 from quollio_core.helper.core import setup_dbt_profile, trim_prefix
 from quollio_core.helper.env_default import env_default
@@ -21,6 +22,7 @@ def build_view(
     conn: db.DatabricksConnectionConfig,
     target_tables: str = "",
     log_level: str = "info",
+    dbt_macro_source: str = "hub",
 ) -> None:
     logger.info("Build profiler views using dbt")
     # set parameters
@@ -30,6 +32,14 @@ def build_view(
     template_path = f"{current_dir}/dbt_projects/databricks/profiles"
     template_name = "profiles_template.yml"
 
+    new_package_file = f"{project_path}/packages.yml"
+    if dbt_macro_source == "local":
+        shutil.copyfile(f"{project_path}/packages_local.yml", new_package_file)
+        logger.info("Will install dbt macro defined in packages_local.yml")
+    else:
+        shutil.copyfile(f"{project_path}/packages_hub.yml", new_package_file)
+        logger.info("Will install dbt macro defined in packages_hub.yml")
+
     # build views using dbt
     setup_dbt_profile(connections_json=conn.as_dict(), template_path=template_path, template_name=template_name)
     # FIXME: when executing some of the commands, directory changes due to the library bug.
@@ -38,7 +48,7 @@ def build_view(
         cmd="deps",
         project_dir=project_path,
         profile_dir=template_path,
-        options=["--no-use-colors", "--log-level", log_level],
+        options=["--no-use-colors", "--log-level", log_level, "--source", dbt_macro_source],
     )
 
     run_options = ["--no-use-colors", "--log-level", log_level]
@@ -181,6 +191,15 @@ if __name__ == "__main__":
         help="The log level for dbt commands. Default value is info",
     )
     parser.add_argument(
+        "--dbt_macro_source",
+        type=str,
+        choices=["hub", "local"],
+        action=env_default("DBT_MACRO_SOURCE"),
+        default="hub",
+        required=False,
+        help="The dbt macro source",
+    )
+    parser.add_argument(
         "--api_url",
         type=str,
         action=env_default("QDC_API_URL"),
@@ -272,6 +291,7 @@ if __name__ == "__main__":
             conn=conn,
             target_tables=args.target_tables,
             log_level=args.log_level,
+            dbt_macro_source=args.dbt_macro_source,
         )
 
     if "load_lineage" in args.commands:
