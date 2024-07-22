@@ -48,7 +48,7 @@ class QDCExternalAPIClient:
             logger.error("Timeout Error: {}".format(te))
             raise
         except RequestException as re:
-            logger.error("Error: {}".format(re))
+            logger.error("RequestException Error: {}".format(re))
             raise
 
     def _refresh_token_if_expired(self):
@@ -57,7 +57,7 @@ class QDCExternalAPIClient:
             self.auth_token = self._get_auth_token()
 
     def _gen_session(self) -> requests.Session:
-        retry = requests.adapters.Retry(total=1, backoff_factor=1, status_forcelist=[429, 500, 503, 504])
+        retry = requests.adapters.Retry(total=9, backoff_factor=1, status_forcelist=[429, 500, 503, 504])
         session = requests.Session()
         session.mount("http://", requests.adapters.HTTPAdapter(max_retries=retry))
         session.mount("https://", requests.adapters.HTTPAdapter(max_retries=retry))
@@ -78,7 +78,7 @@ class QDCExternalAPIClient:
         except Timeout as te:
             logger.error(f"Timeout Error: {te} global_id: {global_id}.")
         except RequestException as re:
-            logger.error(f"Error: {re} global_id: {global_id}.")
+            logger.error(f"RequestException Error: {re} global_id: {global_id}.")
         else:
             return res.status_code
 
@@ -97,7 +97,7 @@ class QDCExternalAPIClient:
         except Timeout as te:
             logger.error(f"Timeout Error: {te} downstream_global_id: {global_id}.")
         except RequestException as re:
-            logger.error(f"Error: {re} downstream_global_id: {global_id}.")
+            logger.error(f"RequestException Error: {re} downstream_global_id: {global_id}.")
         else:
             return res.status_code
 

@@ -20,6 +20,6 @@ RUN set -x \
 
 # Install libraries
 RUN set -x \
-  && make install
+  && flit install --deps production
 
 ENTRYPOINT [ "python", "-m" ]

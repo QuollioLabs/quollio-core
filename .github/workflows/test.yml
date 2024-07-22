@@ -23,6 +23,9 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           pip install .
+          pip install quollio-core[test]
 
       - name: Unittest
-        run: python -m unittest discover tests
+        run: |
+          python -m coverage run -m unittest discover tests
+          coverage report -m
