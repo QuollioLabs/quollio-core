@@ -64,6 +64,9 @@ jobs:
     permissions:
       id-token: write
 
+    env:
+      REPOSITORY: "quollio-core-universal"
+
     steps:
       # Initialize
       - name: checkout
@@ -82,14 +85,20 @@ jobs:
       - name: get latest tag
         run: |
           LIB_VERSION=$(echo ${GITHUB_REF##*/} | sed 's/^v//')
+          echo ${LIB_VERSION} is used as module version.
           echo "QUOLLIO_CORE_LATEST_VERSION=$LIB_VERSION" >> $GITHUB_ENV
 
-      # Build container image and push it to ECR.
-      - name: build
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          REPOSITORY: "quollio-core-universal"
-          IMAGE_TAG: latest
-        run: |
-          docker build --no-cache -t ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }} . -f ./Dockerfile --build-arg LIB_VERSION=${{ env.QUOLLIO_CORE_LATEST_VERSION }} --platform=linux/amd64
-          docker push ${{ env.REGISTRY }}/${{ env.REPOSITORY }}:${{ env.IMAGE_TAG }}
+          CONTAINER_VERSION=$(echo ${GITHUB_REF##*/} | sed -E 's/^(v[0-9]+\.[0-9]+).*/\1/')
+          echo ${CONTAINER_VERSION} is used as image tag.
+          echo "CONTAINER_LATEST_VERSION=$CONTAINER_VERSION" >> $GITHUB_ENV
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platform: linux/amd64
+          push: true
+          tags: ${{ format('{0}/{1}:latest', steps.login-ecr.outputs.registry, env.REPOSITORY) }},${{ format('{0}/{1}:{2}', steps.login-ecr.outputs.registry, env.REPOSITORY, env.CONTAINER_LATEST_VERSION) }}
+          build-args: |
+            LIB_VERSION=${{ env.QUOLLIO_CORE_LATEST_VERSION }}
