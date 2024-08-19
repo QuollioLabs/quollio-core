@@ -30,7 +30,7 @@ WITH columns AS (
     WHERE
       granted_on in ('TABLE', 'MATERIALIZED VIEW')
       AND grantee_name = '{{ var("query_role") }}'
-      AND privilege in ('SELECT', 'OWNERSHIP', 'REFERENCES')
+      AND privilege in ('SELECT', 'OWNERSHIP')
       AND deleted_on IS NULL
     GROUP BY
       table_catalog
