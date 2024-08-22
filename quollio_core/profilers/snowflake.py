@@ -167,7 +167,7 @@ def snowflake_table_stats(
         req_count = 0
         is_aggregate_items = get_is_target_stats_items(stats_items=stats_items)
         for stats_view in stats_views:
-            table_fqn = "{catalog}.{schema}.{table}".format(
+            table_fqn = '"{catalog}"."{schema}"."{table}"'.format(
                 catalog=stats_view["TABLE_CATALOG"], schema=stats_view["TABLE_SCHEMA"], table=stats_view["TABLE_NAME"]
             )
             stats_query = render_sql_for_stats(is_aggregate_items=is_aggregate_items, table_fqn=table_fqn)
