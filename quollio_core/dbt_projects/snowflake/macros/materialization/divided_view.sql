@@ -65,8 +65,10 @@
   {%- endset %}
 
   -- create a view with a index as suffix
-  {%- set stats_view_identifier = "%s_%s_%s_%s"|format(model['name'], stats_target_table[0], stats_target_table[1], stats_target_table[2]) %}
-  {%- set target_relation = api.Relation.create(identifier=stats_view_identifier, schema=schema, database=database, type='view') %}
+  {%- set stats_view_identifier = "\"%s_%s_%s_%s\"" | format(model['name'], stats_target_table[0], stats_target_table[1], stats_target_table[2]) | upper %}
+  {%- set schema_name = "\"%s\""|format(schema) %}
+  {%- set db_name = "\"%s\""|format(database) %}
+  {%- set target_relation = api.Relation.create(identifier=stats_view_identifier, schema=schema_name, database=db_name, type='view') %}
   {% call statement("main") %}
     {{ get_create_view_as_sql(target_relation, sql_for_column_stats) }}
   {% endcall %}
