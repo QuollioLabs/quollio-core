@@ -103,7 +103,7 @@ def load_lineage(
     else:
         logger.info("Skip column lineage ingestion. Set enable_column_lineage to True if you ingest column lineage.")
 
-    logger.info("Lineage data is successfully loaded.")
+    logger.info("Lineage data is successfully finished.")
 
     return
 
@@ -127,7 +127,7 @@ def load_stats(
         stats_items=stats_items,
     )
 
-    logger.info("Stats data is successfully loaded.")
+    logger.info("Stats data is successfully finished.")
 
     return
 
@@ -144,7 +144,7 @@ def load_sqllineage(
         tenant_id=tenant_id,
     )
 
-    logger.info("sqllineage data is successfully loaded.")
+    logger.info("sqllineage data is successfully finished.")
 
     return
 

@@ -25,6 +25,10 @@ class QDCExternalAPIClient:
         Tried to find a package for oauth0 client credentials flow,
         but any of them contains bugs or lacks of features to handle the token refresh when it's expired
         """
+        is_domain_valid = is_valid_domain(domain=self.base_url)
+        if not is_domain_valid:
+            raise ValueError("The format of quollio API URL is invalid. The URL must end with `.com`")
+
         url = f"{self.base_url}/oauth2/token"
         creds = f"{self.client_id}:{self.client_secret}"
         encoded_creds = base64.b64encode(creds.encode()).decode()
@@ -104,3 +108,7 @@ class QDCExternalAPIClient:
 
 def initialize_qdc_client(api_url: str, client_id: str, client_secret: str) -> QDCExternalAPIClient:
     return QDCExternalAPIClient(base_url=api_url, client_id=client_id, client_secret=client_secret)
+
+
+def is_valid_domain(domain: str) -> bool:
+    return domain.endswith(".com")

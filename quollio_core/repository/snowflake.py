@@ -1,6 +1,6 @@
 import logging
 from dataclasses import asdict, dataclass
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from snowflake.connector import DictCursor, connect, errors
 from snowflake.connector.connection import SnowflakeConnection
@@ -46,16 +46,13 @@ class SnowflakeQueryExecutor:
         )
         return conn
 
-    def get_query_results(self, query: str) -> List[Dict[str, str]]:
+    def get_query_results(self, query: str) -> Tuple[List[Dict[str, str]], Exception]:
         with self.conn.cursor(DictCursor) as cur:
             try:
                 cur.execute(query)
                 result: List[Dict[str, str]] = cur.fetchall()
-                return result
+                return (result, None)
             except errors.ProgrammingError as e:
-                logger.error(query)
-                logger.error(
-                    "snowflake get_query_results failed. {0} ({1}): {2} ({3})".format(
-                        e.errno, e.sqlstate, e.msg, e.sfqid
-                    )
-                )
+                return ([], e)
+            except Exception as e:
+                return ([], e)
