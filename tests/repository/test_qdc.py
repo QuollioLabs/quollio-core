@@ -7,7 +7,7 @@ import responses
 
 sys.path.insert(0, os.path.abspath("../.."))
 
-from quollio_core.repository.qdc import QDCExternalAPIClient, initialize_qdc_client
+from quollio_core.repository.qdc import QDCExternalAPIClient, initialize_qdc_client, is_valid_domain
 
 
 class TestQDCExternalAPIClient(unittest.TestCase):
@@ -218,6 +218,23 @@ class TestQDCExternalAPIClient(unittest.TestCase):
             api_url="http://testqdc.com", client_id="fake_client_id", client_secret="fake_client_secret"
         )
         self.assertEqual(type(res), QDCExternalAPIClient)
+
+    def test_is_valid_domain(self) -> None:
+        test_cases = [
+            {
+                "name": "True",
+                "input": "https://dummy.com",
+                "expect": True,
+            },
+            {
+                "name": "False",
+                "input": "https://dummy.com/oauth2/token",
+                "expect": False,
+            },
+        ]
+        for test_case in test_cases:
+            res = is_valid_domain(domain=test_case["input"])
+            self.assertEqual(res, test_case["expect"])
 
 
 if __name__ == "__main__":

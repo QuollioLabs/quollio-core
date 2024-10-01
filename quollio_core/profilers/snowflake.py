@@ -19,7 +19,7 @@ def snowflake_table_to_table_lineage(
     tenant_id: str,
 ) -> None:
     with snowflake.SnowflakeQueryExecutor(conn) as sf_executor:
-        results = sf_executor.get_query_results(
+        results, err = sf_executor.get_query_results(
             query="""
             SELECT
                 *
@@ -30,6 +30,13 @@ def snowflake_table_to_table_lineage(
                 schema=conn.account_schema,
             )
         )
+        if err is not None:
+            handle_error(err=err)
+        if len(results) == 0:
+            logger.warning(
+                "No lineage data in ACCOUNT_USAGE.SNOWFLAKE. Please check the data in `QUOLLIO_LINEAGE_TABLE_LEVEL`."
+            )
+            return
         parsed_results = parse_snowflake_results(results=results)
         update_table_lineage_inputs = gen_table_lineage_payload(
             tenant_id=tenant_id,
@@ -62,7 +69,7 @@ def snowflake_column_to_column_lineage(
     tenant_id: str,
 ) -> None:
     with snowflake.SnowflakeQueryExecutor(conn) as sf_executor:
-        results = sf_executor.get_query_results(
+        results, err = sf_executor.get_query_results(
             query="""
             SELECT
                 *
@@ -73,6 +80,13 @@ def snowflake_column_to_column_lineage(
                 schema=conn.account_schema,
             )
         )
+        if err is not None:
+            handle_error(err=err)
+        if len(results) == 0:
+            logger.warning(
+                "No lineage data in ACCOUNT_USAGE.SNOWFLAKE. Please check the data in `QUOLLIO_LINEAGE_COLUMN_LEVEL`."
+            )
+            return
         update_column_lineage_inputs = gen_column_lineage_payload(
             tenant_id=tenant_id,
             endpoint=conn.account_id,
@@ -105,7 +119,7 @@ def snowflake_table_level_sqllineage(
     tenant_id: str,
 ) -> None:
     with snowflake.SnowflakeQueryExecutor(conn) as sf_executor:
-        results = sf_executor.get_query_results(
+        results, err = sf_executor.get_query_results(
             query="""
             SELECT
                 database_name
@@ -118,6 +132,13 @@ def snowflake_table_level_sqllineage(
                 schema=conn.account_schema,
             )
         )
+        if err is not None:
+            handle_error(err=err)
+        if len(results) == 0:
+            logger.warning(
+                "No lineage data in ACCOUNT_USAGE.SNOWFLAKE. Please check the data in `QUOLLIO_SQLLINEAGE_SOURCES`."
+            )
+            return
         update_table_lineage_inputs_list = list()
         sql_lineage = SQLLineage()
         for result in results:
@@ -158,12 +179,20 @@ def snowflake_table_stats(
     stats_items: List[str],
 ) -> None:
     with snowflake.SnowflakeQueryExecutor(conn) as sf_executor:
-        stats_query = _gen_get_stats_views_query(
+        get_stats_view_query = _gen_get_stats_views_query(
             db=conn.account_database,
             schema=conn.account_schema,
         )
-        stats_views = sf_executor.get_query_results(query=stats_query)
-
+        stats_views, err = sf_executor.get_query_results(query=get_stats_view_query)
+        if err is not None:
+            handle_error(err=err)
+        if len(stats_views) == 0:
+            logger.warning(
+                f"No target table for stats aggregation. Please see the error message above \
+and fix it or grant usage permission to both `{conn.account_database}` and `{conn.account_schema}` \
+and select permissions to views begins with `QUOLLIO_STATS_COLUMNS_`."
+            )
+            return
         req_count = 0
         is_aggregate_items = get_is_target_stats_items(stats_items=stats_items)
         for stats_view in stats_views:
@@ -172,7 +201,15 @@ def snowflake_table_stats(
             )
             stats_query = render_sql_for_stats(is_aggregate_items=is_aggregate_items, table_fqn=table_fqn)
             logger.debug(f"The following sql will be fetched to retrieve stats values. {stats_query}")
-            stats_result = sf_executor.get_query_results(query=stats_query)
+            stats_result, err = sf_executor.get_query_results(query=stats_query)
+            if err is not None:
+                handle_error(err=err, force_skip=True)
+            if len(stats_result) == 0:
+                logger.warning(
+                    f"No stats value. Please query {table_fqn} to check the value exists in it \
+or user has select permission to it."
+                )
+                continue
             payloads = gen_table_stats_payload(tenant_id=tenant_id, endpoint=conn.account_id, stats=stats_result)
             for payload in payloads:
                 logger.info(
@@ -209,3 +246,34 @@ def _gen_get_stats_views_query(db: str, schema: str) -> str:
         db=db, schema=schema
     )
     return query
+
+
+def handle_error(err: Exception, force_skip: bool = False):
+    if err.errno == 2037:
+        logger.warning(
+            "snowflake get_query_results failed. The table you query exists but user doesn't have permission to select.\
+Please check a user has select or ownership permissions. ErrorNo: {0} SQLState: {1} Message: {2} SfqID: {3}".format(
+                err.errno, err.sqlstate, err.msg, err.sfqid
+            )
+        )
+        return
+    elif err.errno == 2003:
+        logger.warning(
+            "snowflake get_query_results failed. User doesn't have select permission to the object \
+or the object you query doesn't exist.\
+Please check a user has select or ownership permissions and whether the object exists or not. \
+ErrorNo: {0} SQLState: {1} Message: {2} SfqID: {3}".format(
+                err.errno, err.sqlstate, err.msg, err.sfqid
+            )
+        )
+        return
+    else:
+        logger.error(
+            "snowflake get_query_results failed.\
+Please check ErrNo and message. ErrorNo: {0} SQLState: {1} Message: {2} SfqID: {3}".format(
+                err.errno, err.sqlstate, err.msg, err.sfqid
+            )
+        )
+        if not force_skip:
+            raise Exception
+        return
